@@ -55,7 +55,7 @@ Automata.prototype.update = function() {
   }
 };
 
-Automata.prototype.applyForce = function(force) {
+Automata.prototype.applyForce = function(force, strength) {
   var velocity;
   force.limit(this.options.forces.maxForce);
   velocity = Phaser.Point.add(this.body.velocity, force);
@@ -76,7 +76,7 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
   viewDistance = viewDistance || this.options.seek.viewDistance;
 
   
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
 
@@ -120,7 +120,7 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
   var steer = new Phaser.Point(), 
       desired;
   if(!!target) {
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
     
@@ -144,7 +144,7 @@ Automata.prototype.pursue = function(target, viewDistance) {
       distance;
   if(!!target) {
 
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
     if(!!target) {
@@ -174,7 +174,7 @@ Automata.prototype.evade = function(target, viewDistance) {
 
   if(!!target) {
 
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       targets = this.getAllInRange(target, viewDistance);
     } else {
       targets = [target];
@@ -242,6 +242,9 @@ Automata.prototype.getClosestInRange = function(targetGroup, viewDistance) {
   }
 
   targetGroup.forEachExists(function(target) {
+    if(target instanceof Phaser.Group) {
+      target = this.getClosestInRange(target);
+    }
     var d;
     d = this.position.distance(target.position);
 

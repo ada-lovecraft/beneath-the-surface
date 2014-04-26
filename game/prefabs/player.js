@@ -3,7 +3,7 @@ var Primative = require('./primative');
 var CrossHair = require('./crosshair');
 
 var Player = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, 'white');
+  Primative.call(this, game, x, y, 32, 'white');
   this.anchor.setTo(0.5, 0.5);
   
   this.game.physics.arcade.enableBody(this);
@@ -54,7 +54,8 @@ Player.prototype.update = function() {
     this.fire();
   }
   this.crosshair.position = this.game.input.position;
-  // write your prefab's specific update code here
+
+  this.rotation += 0.05;
   
 };
 
@@ -72,6 +73,46 @@ Player.prototype.fire = function() {
     this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed);
     this.fireTimer = this.game.time.now + this.fireRate;
   }
+};
+
+Player.prototype.createTexture = function() {
+  this.bmd.clear();
+
+  
+  
+  // create circle background
+  this.bmd.ctx.arc(this.size *0.33 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+  
+  
+  this.bmd.ctx.beginPath();
+  this.bmd.ctx.arc(this.size * 0.66 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+
+  this.bmd.ctx.beginPath();
+  this.bmd.ctx.arc(this.size / 2 , this.size *0.33, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+
+  this.bmd.ctx.beginPath();
+  this.bmd.ctx.arc(this.size / 2 , this.size *0.66, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+  
+
+
+  this.bmd.render();
+  this.bmd.refreshBuffer();
 };
 
 module.exports = Player;

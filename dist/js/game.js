@@ -15,7 +15,7 @@ window.onload = function () {
 
   game.state.start('boot');
 };
-},{"./states/boot":10,"./states/gameover":11,"./states/menu":12,"./states/play":13,"./states/preload":14}],2:[function(require,module,exports){
+},{"./states/boot":13,"./states/gameover":14,"./states/menu":15,"./states/play":16,"./states/preload":17}],2:[function(require,module,exports){
 'use strict';
 
 // Phaser Point Extensions
@@ -110,7 +110,7 @@ Automata.prototype.update = function() {
   }
 };
 
-Automata.prototype.applyForce = function(force) {
+Automata.prototype.applyForce = function(force, strength) {
   var velocity;
   force.limit(this.options.forces.maxForce);
   velocity = Phaser.Point.add(this.body.velocity, force);
@@ -131,7 +131,7 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
   viewDistance = viewDistance || this.options.seek.viewDistance;
 
   
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
 
@@ -175,7 +175,7 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
   var steer = new Phaser.Point(), 
       desired;
   if(!!target) {
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
     
@@ -199,7 +199,7 @@ Automata.prototype.pursue = function(target, viewDistance) {
       distance;
   if(!!target) {
 
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
     if(!!target) {
@@ -229,7 +229,7 @@ Automata.prototype.evade = function(target, viewDistance) {
 
   if(!!target) {
 
-    if(target instanceof Phaser.Group) {
+    if(target instanceof Phaser.Group || target instanceof Array) {
       targets = this.getAllInRange(target, viewDistance);
     } else {
       targets = [target];
@@ -297,6 +297,9 @@ Automata.prototype.getClosestInRange = function(targetGroup, viewDistance) {
   }
 
   targetGroup.forEachExists(function(target) {
+    if(target instanceof Phaser.Group) {
+      target = this.getClosestInRange(target);
+    }
     var d;
     d = this.position.distance(target.position);
 
@@ -718,7 +721,8 @@ var Cell = function(game, x, y, size, color, maxHealth) {
 
   var options = {
     wander: {
-      enabled: true
+      enabled: true,
+      strength: 0.5
     }
   };
 
@@ -813,7 +817,99 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
 
 module.exports = Cell;
 
-},{"./automata":3,"./primative":9}],5:[function(require,module,exports){
+},{"./automata":3,"./primative":12}],5:[function(require,module,exports){
+'use strict';
+var Enemy = require('./enemy');
+var CommonCold = function(game, x, y) {
+  Enemy.call(this, game, x, y, 16, '#88b25b',1);
+  this.anchor.setTo(0.5, 0.5);
+
+  this.game.physics.arcade.enableBody(this);
+
+
+  // initialize your prefab here
+  
+};
+
+CommonCold.prototype = Object.create(Enemy.prototype);
+CommonCold.prototype.constructor = CommonCold;
+
+CommonCold.prototype.update = function() {
+  Enemy.prototype.update.call(this);
+  // write your prefab's specific update code here
+  
+};
+
+CommonCold.prototype.createTexture = function() {
+  this.bmd.clear();
+
+  //this.bmd.ctx.save();
+  //this.bmd.ctx.globalAlpha = 0.5;
+  this.bmd.ctx.beginPath();
+  // create circle background
+  this.bmd.ctx.moveTo(this.size / 2, 0);
+  this.bmd.ctx.lineTo(this.size, this.size * 0.3);
+  this.bmd.ctx.lineTo(this.size, this.size * 0.7);
+  this.bmd.ctx.lineTo(this.size / 2, this.size);
+  this.bmd.ctx.lineTo(0, this.size * 0.7);
+  this.bmd.ctx.lineTo(0, this.size * 0.3);
+  this.bmd.ctx.lineTo(this.size / 2, 0);
+  this.bmd.ctx.strokeStyle = this.color;
+  this.bmd.ctx.lineWidth = 1;
+  this.bmd.ctx.stroke();
+  this.bmd.ctx.closePath();
+
+  this.bmd.ctx.save();
+  this.bmd.ctx.globalAlpha = 0.5;
+  this.bmd.ctx.beginPath();
+  // create circle background
+  this.bmd.ctx.moveTo(this.size / 2, 0);
+  this.bmd.ctx.lineTo(this.size, this.size * 0.3);
+  this.bmd.ctx.lineTo(this.size, this.size * 0.7);
+  this.bmd.ctx.lineTo(this.size / 2, this.size);
+  this.bmd.ctx.lineTo(0, this.size * 0.7);
+  this.bmd.ctx.lineTo(0, this.size * 0.3);
+  this.bmd.ctx.lineTo(this.size / 2, 0);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.fill();
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.restore();
+  /*
+  this.bmd.ctx.lineTo(this.size, this.size * 0.75);
+  this.bmd.ctx.lineTo(this.size / 2, this.size);
+  this.bmd.ctx.lineTo(0, this.size * 0.75);
+  this.bmd.ctx.lineTo(0, this.size * 0.25);
+  this.bmd.ctx.lineTo(this.width/2, 0);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  */
+  
+  //create circle outline
+  /*
+  this.bmd.ctx.restore();
+  CommonCold.drawBody(this.bmd.ctx);
+  this.bmd.ctx.strokeStyle = this.color;
+  this.bmd.ctx.lineWidth = 1;
+  this.bmd.ctx.stroke();
+  */
+  this.bmd.render();
+  this.bmd.refreshBuffer();
+};
+
+CommonCold.drawBody = function(ctx) {
+  ctx.moveTo(this.width/2, 0);
+  ctx.lineTo(this.width, this.height * 0.25);
+  ctx.lineTo(this.width, this.height * 0.75);
+  ctx.lineTo(this.width/2, this.height);
+  ctx.lineTo(0, this.height * 0.75);
+  ctx.lineTo(0, this.height * 0.25);
+  ctx.lineTo(this.width/2, 0);
+};
+
+module.exports = CommonCold;
+
+},{"./enemy":7}],6:[function(require,module,exports){
 'use strict';
 
 var Primative = require('./primative');
@@ -847,13 +943,14 @@ module.exports = CrossHair;
 
 
 
-},{"./primative":9}],6:[function(require,module,exports){
+},{"./primative":12}],7:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
 var Enemy = function(game, x, y, size, color, maxHealth) {
   color = color || '#88b25b';
-  Cell.call(this, game, x, y, size, color, 1);
+  maxHealth = maxHealth || 1;
+  Cell.call(this, game, x, y, size, color, maxHealth);
 
   this.deathSound = this.game.add.audio('enemyDeath');
 };
@@ -872,7 +969,7 @@ Enemy.prototype.onKilled = function() {
 
 module.exports = Enemy;
 
-},{"./cell":4}],7:[function(require,module,exports){
+},{"./cell":4}],8:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
@@ -962,13 +1059,113 @@ Friendly.prototype.takeDamage = function() {
 
 module.exports = Friendly;
 
-},{"./cell":4}],8:[function(require,module,exports){
+},{"./cell":4}],9:[function(require,module,exports){
+'use strict';
+var Primative = require('./primative');
+
+var Hemoglobin = function(game, x, y) {
+  Primative.call(this, game, x, y, 12, '#c820ff');
+  this.anchor.setTo(0.5, 0.5);
+
+  this.game.physics.arcade.enableBody(this);
+
+
+  // initialize your prefab here
+  
+};
+
+Hemoglobin.prototype = Object.create(Phaser.Sprite.prototype);
+Hemoglobin.prototype.constructor = Hemoglobin;
+
+Hemoglobin.prototype.update = function() {
+  
+  // write your prefab's specific update code here
+  
+};
+
+Hemoglobin.prototype.createTexture = function() {
+  this.bmd.clear();
+
+  this.bmd.ctx.save();
+  this.bmd.ctx.globalAlpha = 0.5;
+  this.bmd.ctx.beginPath();
+  // create circle background
+  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  
+  //create circle outline
+  this.bmd.ctx.restore();
+  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
+  this.bmd.ctx.strokeStyle = this.color;
+  this.bmd.ctx.lineWidth = 1;
+  this.bmd.ctx.stroke();
+
+
+  this.bmd.render();
+  this.bmd.refreshBuffer();
+};
+
+module.exports = Hemoglobin;
+
+},{"./primative":12}],10:[function(require,module,exports){
+'use strict';
+var Primative = require('./primative');
+
+var Oxygen = function(game, x, y) {
+  Primative.call(this, game, x, y, 12, '#4e8cff');
+  this.anchor.setTo(0.5, 0.5);
+
+  this.game.physics.arcade.enableBody(this);
+
+
+  // initialize your prefab here
+  
+};
+
+Oxygen.prototype = Object.create(Phaser.Sprite.prototype);
+Oxygen.prototype.constructor = Oxygen;
+
+Oxygen.prototype.update = function() {
+  
+  // write your prefab's specific update code here
+  
+};
+
+Oxygen.prototype.createTexture = function() {
+  this.bmd.clear();
+
+  this.bmd.ctx.save();
+  this.bmd.ctx.globalAlpha = 0.5;
+  this.bmd.ctx.beginPath();
+  // create circle background
+  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  
+  //create circle outline
+  this.bmd.ctx.restore();
+  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
+  this.bmd.ctx.strokeStyle = this.color;
+  this.bmd.ctx.lineWidth = 1;
+  this.bmd.ctx.stroke();
+
+
+  this.bmd.render();
+  this.bmd.refreshBuffer();
+};
+
+module.exports = Oxygen;
+
+},{"./primative":12}],11:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var CrossHair = require('./crosshair');
 
 var Player = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, 'white');
+  Primative.call(this, game, x, y, 32, 'white');
   this.anchor.setTo(0.5, 0.5);
   
   this.game.physics.arcade.enableBody(this);
@@ -1019,7 +1216,8 @@ Player.prototype.update = function() {
     this.fire();
   }
   this.crosshair.position = this.game.input.position;
-  // write your prefab's specific update code here
+
+  this.rotation += 0.05;
   
 };
 
@@ -1039,9 +1237,49 @@ Player.prototype.fire = function() {
   }
 };
 
+Player.prototype.createTexture = function() {
+  this.bmd.clear();
+
+  
+  
+  // create circle background
+  this.bmd.ctx.arc(this.size *0.33 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+  
+  
+  this.bmd.ctx.beginPath();
+  this.bmd.ctx.arc(this.size * 0.66 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+
+  this.bmd.ctx.beginPath();
+  this.bmd.ctx.arc(this.size / 2 , this.size *0.33, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+
+  this.bmd.ctx.beginPath();
+  this.bmd.ctx.arc(this.size / 2 , this.size *0.66, this.size / 4, 0, 2 * Math.PI, false);
+  this.bmd.ctx.fillStyle = this.color;
+  this.bmd.ctx.closePath();
+  this.bmd.ctx.fill();
+  this.bmd.ctx.stroke();
+  
+
+
+  this.bmd.render();
+  this.bmd.refreshBuffer();
+};
+
 module.exports = Player;
 
-},{"./crosshair":5,"./primative":9}],9:[function(require,module,exports){
+},{"./crosshair":6,"./primative":12}],12:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   this.size = size;
@@ -1075,7 +1313,7 @@ Primative.prototype.createTexture = function() {
 
 module.exports = Primative;
 
-},{}],10:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 
 'use strict';
 
@@ -1095,7 +1333,7 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],11:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 
 'use strict';
 function GameOver() {}
@@ -1121,7 +1359,7 @@ GameOver.prototype = {
 };
 module.exports = GameOver;
 
-},{}],12:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 
 'use strict';
 function Menu() {}
@@ -1154,48 +1392,68 @@ Menu.prototype = {
 
 module.exports = Menu;
 
-},{}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 
   'use strict';
   var Player = require('../prefabs/player');
-  var Enemy = require('../prefabs/enemy');
+  var CommonCold = require('../prefabs/common-cold');
   var Friendly = require('../prefabs/friendly');
-  var Primative = require('../prefabs/primative');
+  var Hemoglobin = require('../prefabs/hemoglobin');
+  var Oxygen = require('../prefabs/oxygen');
   function Play() {}
   Play.prototype = {
     create: function() {
-      
+      this.score = 0;
+
       this.gamehud = Phaser.Plugin.HUDManager.create(this.game, this, 'gamehud');
+      
       this.enemyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'cellhud');
+      
       this.friendlyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'friendlyhud');
+
+      var style = { font: '18px Arial', fill: '#ffffff', align: 'center'};
+      this.scoreHUD = this.gamehud.addText(10, 10, 'Score: ', style, 'score', this);
+      
+      this.game.add.existing(this.scoreHUD.text);
       
       this.game.physics.startSystem(Phaser.Physics.ARCADE);
 
-      this.player = new Player(this.game, this.game.world.centerX, this.game.world.centerY, 16, 'white');
-      this.game.add.existing(this.player);
+      
 
       this.oxygen = this.game.add.group();
       
       this.enemies = this.game.add.group();
+
+      this.hemoglobins = this.game.add.group();
       
       this.friendlies = this.game.add.group();
-      for(var i =0; i < 10; i++) {
-        var enemy = new Enemy(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+
+      this.player = new Player(this.game, this.game.world.centerX, this.game.world.centerY, 16, 'white');
+      this.game.add.existing(this.player);
+      this.friendlies.add(this.player);
+
+      var i;
+      for(i =0; i < 10; i++) {
+        var enemy = new CommonCold(this.game, this.game.world.randomX, this.game.world.randomY, 16);
         this.enemies.add(enemy);
       }
 
       
 
-      for(var i = 0; i < 5; i++) {
+      for(i = 0; i < 0; i++) {
         var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
         this.friendlies.add(friendly);
       }
 
-      for(var i = 0; i < 10; i++ ){
-        var oxygen = new Primative(this.game, this.game.world.randomX, this.game.world.randomY, 4, '#0e85e1');
+      for(i = 0; i < 10; i++ ){
+        var oxygen = new Oxygen(this.game, this.game.world.randomX, this.game.world.randomY);
         oxygen.anchor.setTo(0.5, 0.5);
-        this.game.physics.arcade.enableBody(oxygen);
         this.oxygen.add(oxygen);
+      }
+
+      for(i = 0; i < 10; i++) {
+        var hemo = new Hemoglobin(this.game, this.game.world.randomX, this.game.world.randomY);
+        this.hemoglobins.add(hemo);
       }
 
       this.friendlies.setAll('automataOptions', {
@@ -1207,11 +1465,12 @@ module.exports = Menu;
         evade: {
           enabled: true,
           target: this.enemies,
-          strength: 5.0,
+          strength: 1.0,
           viewDistance: 100,
         },
         flee:{
-          target: this.enemies
+          target: this.enemies,
+          strength: 1.0
         },
         game: {
           debug: false,
@@ -1226,7 +1485,7 @@ module.exports = Menu;
         pursue: {
           enabled: true,
           target: this.friendlies,
-          viewDistance: 100
+          viewDistance: 300
         },
         game: {
           debug: false,
@@ -1245,13 +1504,14 @@ module.exports = Menu;
       enemy.health--;
       if(enemy.health == 0) {
         enemy.kill();
+        this.score++;
       }
     }
     
   };
   
   module.exports = Play;
-},{"../prefabs/enemy":6,"../prefabs/friendly":7,"../prefabs/player":8,"../prefabs/primative":9}],14:[function(require,module,exports){
+},{"../prefabs/common-cold":5,"../prefabs/friendly":8,"../prefabs/hemoglobin":9,"../prefabs/oxygen":10,"../prefabs/player":11}],17:[function(require,module,exports){
 'use strict';
 function Preload() {
   this.asset = null;

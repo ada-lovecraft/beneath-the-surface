@@ -10,7 +10,8 @@ var Cell = function(game, x, y, size, color, maxHealth) {
 
   var options = {
     wander: {
-      enabled: true
+      enabled: true,
+      strength: 0.5
     }
   };
 
