@@ -57,7 +57,11 @@
           target: this.enemies
         },
         game: {
-          debug: false
+          debug: false,
+          wrapWorldBounds: false
+        },
+        forces: {
+          maxVelocity: 200
         }
       });
 
@@ -68,13 +72,24 @@
           viewDistance: 100
         },
         game: {
-          debug: false
+          debug: false,
+          wrapWorldBounds: false
+        },
+        forces: {
+          maxVelocity: 200
         }
       });
     },
     update: function() {
-      
+      this.game.physics.arcade.overlap(this.player.bullets, this.enemies, this.enemyHit, null, this);
     },
+    enemyHit: function(bullet, enemy) {
+      bullet.kill();
+      enemy.health--;
+      if(enemy.health == 0) {
+        enemy.kill();
+      }
+    }
     
   };
   

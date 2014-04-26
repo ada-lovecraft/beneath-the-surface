@@ -20,10 +20,15 @@ var Player = function(game, x, y) {
   this.bullets.enableBody = true;
   this.bullets.bodyType = Phaser.Physics.Arcade.Body;
 
-  this.game.input.onDown.add(this.fire, this);
 
   this.crosshair = new CrossHair(this.game, this.game.width/2, this.game.height/2, 32, '#33');
   this.game.add.existing(this.crosshair);
+
+  this.shootSound = this.game.add.audio('playerShoot');
+  this.body.collideWorldBounds = true;
+
+  this.fireTimer = 0;
+  this.fireRate = 200;
 };
 
 Player.prototype = Object.create(Primative.prototype);
@@ -45,21 +50,28 @@ Player.prototype.update = function() {
     this.body.velocity.y = -this.moveSpeed;
   }
 
+  if (this.game.input.activePointer.isDown) {
+    this.fire();
+  }
   this.crosshair.position = this.game.input.position;
   // write your prefab's specific update code here
   
 };
 
 Player.prototype.fire = function() {
-  var bullet = this.bullets.getFirstExists(false);
+  if(this.fireTimer < this.game.time.now) {
+    this.shootSound.play();
+    var bullet = this.bullets.getFirstExists(false);
 
-  if (!bullet) {
-    bullet = new Primative(this.game, 0, 0, 4, '#925bb2');
-    this.bullets.add(bullet);
+    if (!bullet) {
+      bullet = new Primative(this.game, 0, 0, 4, '#925bb2');
+      this.bullets.add(bullet);
+    }
+    bullet.reset(this.x, this.y);
+    bullet.revive();
+    this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed);
+    this.fireTimer = this.game.time.now + this.fireRate;
   }
-  bullet.reset(this.x, this.y);
-  bullet.revive();
-  this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed);
 };
 
 module.exports = Player;

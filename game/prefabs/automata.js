@@ -9,9 +9,7 @@ var Automata = function(game, x, y, options) {
 
   this.graphics = this.game.add.graphics(0,0);
 
-
-  
-
+  this.edges = null; // set automatically by setOptions setter method
   this.renderDebug = new Automata.debug(this.graphics);
   // initialize your prefab here
   
@@ -26,12 +24,13 @@ Automata.prototype.update = function() {
   if(this.options.game.debug) {
     this.renderDebug.clear();
   }
+  var accel = new Phaser.Point();
 
   _.every(this.priorityList, function(priority) {
     priority.continue = true;
     _.each(priority, function(behavior) {
-      var accel = new Phaser.Point();
       if(behavior.enabled) {
+        accel.setTo(0,0);
         accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
         if(accel.getMagnitude() > 0) {
           accel.scaleBy(behavior.strength);
@@ -43,16 +42,17 @@ Automata.prototype.update = function() {
     return priority.continue;
   }, this);
 
-  if(this.options.game.wrapWorldBounds) {
-    this.checkBounds();
-  }
+
+  
 
   if(this.options.game.rotateToVelocity) {
     this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
   }
 
   this.body.velocity.limit(this.options.forces.maxVelocity);
-  this.body.acceleration.setTo(0,0);
+  if(this.options.game.debug) {
+    this.renderDebug.velocity(this);
+  }
 };
 
 Automata.prototype.applyForce = function(force) {
@@ -365,18 +365,20 @@ Automata.prototype.cohesion = function() {
 
 
 Automata.prototype.checkBounds = function() {
-  if(this.position.x < -this.radius ){
-    this.position.x = this.game.width + this.radius;
-  }
-  if(this.position.y < -this.radius ){
-    this.position.y = this.game.height + this.radius;
-  }
-  if(this.position.x > this.game.width + this.radius ){
-    this.position.x = -this.radius;
-  }
-  if(this.position.y > this.game.height + this.radius ){
-    this.position.y = -this.radius;
-  }
+  if(this.options.game.wrapWorldBounds === true) {
+    if(this.position.x < this.edges.left ){
+      this.position.x = this.game.width + this.radius;
+    }
+    if(this.position.y < this.edges.top ){
+      this.position.y = this.game.height + this.radius;
+    }
+    if(this.position.x > this.edges.right ){
+      this.position.x = -this.radius;
+    }
+    if(this.position.y > this.edges.bottom ){
+      this.position.y = -this.radius;
+    }
+  } 
 };
 
 Automata.prototype.setOptions = function(options) {
@@ -391,6 +393,22 @@ Automata.prototype.setOptions = function(options) {
   this.priorityList.sort(function(a,b) {
     return a.id - b.id;
   });
+
+  if(this.options.game.wrapWorldBounds === false) {
+    this.edges = {
+      left: this.options.game.edgeWidth,
+      right: this.game.width - this.options.game.edgeWidth,
+      top: this.options.game.edgeWidth,
+      bottom: this.game.height - this.options.game.edgeWidth
+    };
+  } else {
+    this.edges = {
+      left: -this.radius,
+      right: this.game.width + this.radius,
+      top: -this.radius,
+      bottom: this.game.height + this.radius
+    };
+  }
 };
 
 
@@ -398,6 +416,7 @@ Automata.defaultOptions = Object.freeze({
   game: {
     wrapWorldBounds: true,
     rotateToVelocity: true,
+    edgeWidth: 25,
     debug: false
   },
   forces: {
@@ -513,6 +532,15 @@ Automata.debug.prototype = Object.create({
     this.distanceLabel.fill = color;
     this.distanceLabel.alpha = alpha;
   },
+  velocity: function(automata) {
+    var line = new Phaser.Point(automata.x + automata.body.velocity.x, automata.y + automata.body.velocity.y)
+    this.graphics.lineStyle(2, 0x000000,1);
+    this.graphics.moveTo(automata.x, automata.y);
+    this.graphics.lineTo(line.x, line.y);
+    this.fill(0x000000,1, true, function() {
+      this.graphics.drawCircle(line.x, line.y, 3);
+    });
+  },
   seek: function(position, target, viewDistance, active, slowingRadius, slowActive, color, alpha) {
 
     active = !!active;
@@ -522,7 +550,7 @@ Automata.debug.prototype = Object.create({
 
     this.drawSensorRange(position, viewDistance, active, color, alpha);
     if (slowingRadius) {
-      this.drawSensorRange(position, slowingRadius, slowActive, color, alpha)
+      this.drawSensorRange(position, slowingRadius, slowActive, color, alpha);
     }
     if(active) {
       this.drawLineToTarget(position, target);
@@ -575,6 +603,21 @@ Automata.debug.prototype = Object.create({
       this.setLabel(position, 'evading', Phaser.Point.distance(position, targets[0]).toFixed(2), color, alpha);
     }
     
+  },
+  bounds: function(edgeWidth, active) {
+    this.fill(0x999999, 1, active, function() {
+
+      var x1 = edgeWidth;
+      var x2 = this.game.width - edgeWidth;
+      var y1 = edgeWidth;
+      var y2 = this.game.height - edgeWidth;
+
+      this.graphics.moveTo(x1,y1);
+      this.graphics.lineTo(x2, y1);
+      this.graphics.lineTo(x2, y2);
+      this.graphics.lineTo(x1, y2);
+      this.graphics.lineTo(x1,y1);
+    });
   },
   drawSensorRange: function(position, viewDistance, active, color, alpha) {
     this.fill(color, alpha, active, function() {

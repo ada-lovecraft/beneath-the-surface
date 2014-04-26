@@ -64,9 +64,7 @@ var Automata = function(game, x, y, options) {
 
   this.graphics = this.game.add.graphics(0,0);
 
-
-  
-
+  this.edges = null; // set automatically by setOptions setter method
   this.renderDebug = new Automata.debug(this.graphics);
   // initialize your prefab here
   
@@ -81,12 +79,13 @@ Automata.prototype.update = function() {
   if(this.options.game.debug) {
     this.renderDebug.clear();
   }
+  var accel = new Phaser.Point();
 
   _.every(this.priorityList, function(priority) {
     priority.continue = true;
     _.each(priority, function(behavior) {
-      var accel = new Phaser.Point();
       if(behavior.enabled) {
+        accel.setTo(0,0);
         accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
         if(accel.getMagnitude() > 0) {
           accel.scaleBy(behavior.strength);
@@ -98,16 +97,17 @@ Automata.prototype.update = function() {
     return priority.continue;
   }, this);
 
-  if(this.options.game.wrapWorldBounds) {
-    this.checkBounds();
-  }
+
+  
 
   if(this.options.game.rotateToVelocity) {
     this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
   }
 
   this.body.velocity.limit(this.options.forces.maxVelocity);
-  this.body.acceleration.setTo(0,0);
+  if(this.options.game.debug) {
+    this.renderDebug.velocity(this);
+  }
 };
 
 Automata.prototype.applyForce = function(force) {
@@ -420,18 +420,20 @@ Automata.prototype.cohesion = function() {
 
 
 Automata.prototype.checkBounds = function() {
-  if(this.position.x < -this.radius ){
-    this.position.x = this.game.width + this.radius;
-  }
-  if(this.position.y < -this.radius ){
-    this.position.y = this.game.height + this.radius;
-  }
-  if(this.position.x > this.game.width + this.radius ){
-    this.position.x = -this.radius;
-  }
-  if(this.position.y > this.game.height + this.radius ){
-    this.position.y = -this.radius;
-  }
+  if(this.options.game.wrapWorldBounds === true) {
+    if(this.position.x < this.edges.left ){
+      this.position.x = this.game.width + this.radius;
+    }
+    if(this.position.y < this.edges.top ){
+      this.position.y = this.game.height + this.radius;
+    }
+    if(this.position.x > this.edges.right ){
+      this.position.x = -this.radius;
+    }
+    if(this.position.y > this.edges.bottom ){
+      this.position.y = -this.radius;
+    }
+  } 
 };
 
 Automata.prototype.setOptions = function(options) {
@@ -446,6 +448,22 @@ Automata.prototype.setOptions = function(options) {
   this.priorityList.sort(function(a,b) {
     return a.id - b.id;
   });
+
+  if(this.options.game.wrapWorldBounds === false) {
+    this.edges = {
+      left: this.options.game.edgeWidth,
+      right: this.game.width - this.options.game.edgeWidth,
+      top: this.options.game.edgeWidth,
+      bottom: this.game.height - this.options.game.edgeWidth
+    };
+  } else {
+    this.edges = {
+      left: -this.radius,
+      right: this.game.width + this.radius,
+      top: -this.radius,
+      bottom: this.game.height + this.radius
+    };
+  }
 };
 
 
@@ -453,6 +471,7 @@ Automata.defaultOptions = Object.freeze({
   game: {
     wrapWorldBounds: true,
     rotateToVelocity: true,
+    edgeWidth: 25,
     debug: false
   },
   forces: {
@@ -568,6 +587,15 @@ Automata.debug.prototype = Object.create({
     this.distanceLabel.fill = color;
     this.distanceLabel.alpha = alpha;
   },
+  velocity: function(automata) {
+    var line = new Phaser.Point(automata.x + automata.body.velocity.x, automata.y + automata.body.velocity.y)
+    this.graphics.lineStyle(2, 0x000000,1);
+    this.graphics.moveTo(automata.x, automata.y);
+    this.graphics.lineTo(line.x, line.y);
+    this.fill(0x000000,1, true, function() {
+      this.graphics.drawCircle(line.x, line.y, 3);
+    });
+  },
   seek: function(position, target, viewDistance, active, slowingRadius, slowActive, color, alpha) {
 
     active = !!active;
@@ -577,7 +605,7 @@ Automata.debug.prototype = Object.create({
 
     this.drawSensorRange(position, viewDistance, active, color, alpha);
     if (slowingRadius) {
-      this.drawSensorRange(position, slowingRadius, slowActive, color, alpha)
+      this.drawSensorRange(position, slowingRadius, slowActive, color, alpha);
     }
     if(active) {
       this.drawLineToTarget(position, target);
@@ -631,6 +659,21 @@ Automata.debug.prototype = Object.create({
     }
     
   },
+  bounds: function(edgeWidth, active) {
+    this.fill(0x999999, 1, active, function() {
+
+      var x1 = edgeWidth;
+      var x2 = this.game.width - edgeWidth;
+      var y1 = edgeWidth;
+      var y2 = this.game.height - edgeWidth;
+
+      this.graphics.moveTo(x1,y1);
+      this.graphics.lineTo(x2, y1);
+      this.graphics.lineTo(x2, y2);
+      this.graphics.lineTo(x1, y2);
+      this.graphics.lineTo(x1,y1);
+    });
+  },
   drawSensorRange: function(position, viewDistance, active, color, alpha) {
     this.fill(color, alpha, active, function() {
       this.graphics.drawCircle(position.x, position.y, viewDistance);
@@ -666,9 +709,10 @@ module.exports = Automata;
 'use strict';
 var Primative = require('./primative');
 var Automata = require('./automata');
+var cellCounter = 0;
 var Cell = function(game, x, y, size, color, maxHealth) {
   size = size || 16;
-  color = color || 'white';
+  this.cellColor = color || 'white';
   this.maxHealth = maxHealth || 5;
   
 
@@ -679,7 +723,7 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   };
 
   Automata.call(this, game, x, y, options);
-  Primative.call(this, game, x, y, size, color);
+  Primative.call(this, game, x, y, size, this.cellColor);
 
   this.anchor.setTo(0.5, 0.5);
   this.game.physics.arcade.enableBody(this);
@@ -691,6 +735,12 @@ var Cell = function(game, x, y, size, color, maxHealth) {
 
   this.healthHUD.bar.anchor.setTo(0.5, 0.5);
   this.game.add.existing(this.healthHUD.bar);
+
+  this.events.onKilled.add(this.onKilled, this);
+  this.id = cellCounter;
+  this.label = null;
+  cellCounter++;
+  
   
   
 };
@@ -699,11 +749,53 @@ Cell.prototype = Object.create(_.merge(Primative.prototype, Automata.prototype, 
 Cell.prototype.constructor = Cell;
 
 Cell.prototype.update = function() {
-  Automata.prototype.update.call(this);
+  if(this.exists) {
+    Automata.prototype.update.call(this);
+  }
   // write your prefab's specific update code here
   this.healthHUD.bar.position.x = this.position.x;
   this.healthHUD.bar.position.y = this.position.y - this.radius;
+  if(this.options.game.debug && this.exists) {
+    Cell.debug.updateLabel(this);
+  }
   
+};
+
+Cell.prototype.onKilled = function() {
+  this.healthHUD.bar.kill();
+  if(this.options.game.debug) {
+    Cell.debug.destroyLabels(this);
+    this.renderDebug.clear();
+  }
+};
+
+Cell.prototype.onRevived = function() {
+
+};
+
+Cell.debug = {
+  updateLabel: function(cell) {
+    if(cell.options.game.debug) {
+      if(!cell.idDebug) {
+        cell.idDebug = cell.game.add.text(cell.x, cell.y, cell.id, {font: '8pt Arial'});
+        cell.idDebug.anchor.setTo(0.5, 0.5);
+      }
+      if(!cell.positionDebug) {
+        cell.positionDebug = cell.game.add.text(cell.x, cell.y + cell.radius, '');
+        cell.positionDebug.anchor.setTo(0.5, 0.5);
+        cell.positionDebug.style.font = '8pt Arial';
+        cell.positionDebug.fill = cell.cellColor;
+      }
+    }
+    cell.idDebug.position = cell.position;
+    
+    cell.positionDebug.position = new Phaser.Point(cell.x, cell.y + cell.radius);
+    cell.positionDebug.text = 'x: ' + cell.position.x.toFixed(0) + ' y: ' + cell.position.y.toFixed(0);
+  },
+  destroyLabels: function(cell) {
+    cell.idDebug.destroy();
+    cell.positionDebug.destroy();
+  }
 };
 
 Object.defineProperty(Cell.prototype, 'automataOptions', {
@@ -712,6 +804,10 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
   },
   set: function(value) {
     this.setOptions(value);
+    if(this.options.game.wrapWorldBounds == false) {
+      this.body.collideWorldBounds = true;
+      this.body.bounce.setTo(1,1);
+    }
   }
 });
 
@@ -757,7 +853,9 @@ var Cell = require('./cell');
 
 var Enemy = function(game, x, y, size, color, maxHealth) {
   color = color || '#88b25b';
-  Cell.call(this, game, x, y, size, color, maxHealth);
+  Cell.call(this, game, x, y, size, color, 1);
+
+  this.deathSound = this.game.add.audio('enemyDeath');
 };
 
 Enemy.prototype = Object.create(Cell.prototype);
@@ -765,8 +863,11 @@ Enemy.prototype.constructor = Enemy;
 
 Enemy.prototype.update = function() {
   Cell.prototype.update.call(this);
-  this.healthHUD.bar.position.x = this.position.x;
-  this.healthHUD.bar.position.y = this.position.y - this.radius;
+};
+
+Enemy.prototype.onKilled = function() {
+  Cell.prototype.onKilled.call(this);
+  this.deathSound.play();
 };
 
 module.exports = Enemy;
@@ -777,11 +878,12 @@ var Cell = require('./cell');
 
 var Friendly = function(game, x, y, size, color, maxHealth) {
   color = color || '#fc8383';
-  Cell.call(this, game, x, y, size, color, maxHealth);
+  Cell.call(this, game, x, y, size, color, 3);
   this.canBeDamaged = true;
   this.panicTween = null;
   this.ouchSound = this.game.add.audio('ouch');
   this.oxygenSound = this.game.add.audio('oxygenPickup');
+  this.deathSound = this.game.add.audio('cellDeath');
 
 };
 
@@ -818,12 +920,15 @@ Friendly.prototype.oxygenPickup = function(friendly, oxygen) {
   }
 };
 
-Friendly.prototype.takeDamage = function(self, enemy) {
-  this.ouchSound.play();
-  self.health--;
+Friendly.prototype.takeDamage = function() {
+  
+  this.health--;
   if (this.health === 0) {
     this.kill();
+    this.deathSound.play();
+    this.healthHUD.bar.kill();
   } else {
+    this.ouchSound.play();
     this.canBeDamaged = false;
     this.automataOptions = {
       evade: {
@@ -837,7 +942,7 @@ Friendly.prototype.takeDamage = function(self, enemy) {
       }
     };
 
-    this.panicTween = this.game.add.tween(this).to({alpha: 0.75 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
+    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
     this.panicTween.onComplete.add(function() {
       this.canBeDamaged = true;
       this.automataOptions = {
@@ -880,10 +985,15 @@ var Player = function(game, x, y) {
   this.bullets.enableBody = true;
   this.bullets.bodyType = Phaser.Physics.Arcade.Body;
 
-  this.game.input.onDown.add(this.fire, this);
 
   this.crosshair = new CrossHair(this.game, this.game.width/2, this.game.height/2, 32, '#33');
   this.game.add.existing(this.crosshair);
+
+  this.shootSound = this.game.add.audio('playerShoot');
+  this.body.collideWorldBounds = true;
+
+  this.fireTimer = 0;
+  this.fireRate = 200;
 };
 
 Player.prototype = Object.create(Primative.prototype);
@@ -905,21 +1015,28 @@ Player.prototype.update = function() {
     this.body.velocity.y = -this.moveSpeed;
   }
 
+  if (this.game.input.activePointer.isDown) {
+    this.fire();
+  }
   this.crosshair.position = this.game.input.position;
   // write your prefab's specific update code here
   
 };
 
 Player.prototype.fire = function() {
-  var bullet = this.bullets.getFirstExists(false);
+  if(this.fireTimer < this.game.time.now) {
+    this.shootSound.play();
+    var bullet = this.bullets.getFirstExists(false);
 
-  if (!bullet) {
-    bullet = new Primative(this.game, 0, 0, 4, '#925bb2');
-    this.bullets.add(bullet);
+    if (!bullet) {
+      bullet = new Primative(this.game, 0, 0, 4, '#925bb2');
+      this.bullets.add(bullet);
+    }
+    bullet.reset(this.x, this.y);
+    bullet.revive();
+    this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed);
+    this.fireTimer = this.game.time.now + this.fireRate;
   }
-  bullet.reset(this.x, this.y);
-  bullet.revive();
-  this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed);
 };
 
 module.exports = Player;
@@ -1097,7 +1214,11 @@ module.exports = Menu;
           target: this.enemies
         },
         game: {
-          debug: false
+          debug: false,
+          wrapWorldBounds: false
+        },
+        forces: {
+          maxVelocity: 200
         }
       });
 
@@ -1108,13 +1229,24 @@ module.exports = Menu;
           viewDistance: 100
         },
         game: {
-          debug: false
+          debug: false,
+          wrapWorldBounds: false
+        },
+        forces: {
+          maxVelocity: 200
         }
       });
     },
     update: function() {
-      
+      this.game.physics.arcade.overlap(this.player.bullets, this.enemies, this.enemyHit, null, this);
     },
+    enemyHit: function(bullet, enemy) {
+      bullet.kill();
+      enemy.health--;
+      if(enemy.health == 0) {
+        enemy.kill();
+      }
+    }
     
   };
   
@@ -1138,6 +1270,11 @@ Preload.prototype = {
     this.load.script('HudManager', 'js/plugins/HudManager.js');
     this.load.audio('ouch', 'assets/audio/ouch.wav');
     this.load.audio('oxygenPickup', 'assets/audio/oxygen-pickup.wav');
+    this.load.audio('cellDeath', 'assets/audio/cell-death.wav');
+    this.load.audio('enemyDeath', 'assets/audio/enemy-death.wav');
+    this.load.audio('hemoglobinPickup', 'assets/audio/hemoglobin-pickup.wav');
+    this.load.audio('playerDeath', 'assets/audio/player-death.wav');
+    this.load.audio('playerShoot', 'assets/audio/player-shoot.wav');
 
 
   },

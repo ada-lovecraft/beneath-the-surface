@@ -3,11 +3,12 @@ var Cell = require('./cell');
 
 var Friendly = function(game, x, y, size, color, maxHealth) {
   color = color || '#fc8383';
-  Cell.call(this, game, x, y, size, color, maxHealth);
+  Cell.call(this, game, x, y, size, color, 3);
   this.canBeDamaged = true;
   this.panicTween = null;
   this.ouchSound = this.game.add.audio('ouch');
   this.oxygenSound = this.game.add.audio('oxygenPickup');
+  this.deathSound = this.game.add.audio('cellDeath');
 
 };
 
@@ -44,12 +45,15 @@ Friendly.prototype.oxygenPickup = function(friendly, oxygen) {
   }
 };
 
-Friendly.prototype.takeDamage = function(self, enemy) {
-  this.ouchSound.play();
-  self.health--;
+Friendly.prototype.takeDamage = function() {
+  
+  this.health--;
   if (this.health === 0) {
     this.kill();
+    this.deathSound.play();
+    this.healthHUD.bar.kill();
   } else {
+    this.ouchSound.play();
     this.canBeDamaged = false;
     this.automataOptions = {
       evade: {
@@ -63,7 +67,7 @@ Friendly.prototype.takeDamage = function(self, enemy) {
       }
     };
 
-    this.panicTween = this.game.add.tween(this).to({alpha: 0.75 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
+    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
     this.panicTween.onComplete.add(function() {
       this.canBeDamaged = true;
       this.automataOptions = {

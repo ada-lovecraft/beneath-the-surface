@@ -16,6 +16,11 @@ Preload.prototype = {
     this.load.script('HudManager', 'js/plugins/HudManager.js');
     this.load.audio('ouch', 'assets/audio/ouch.wav');
     this.load.audio('oxygenPickup', 'assets/audio/oxygen-pickup.wav');
+    this.load.audio('cellDeath', 'assets/audio/cell-death.wav');
+    this.load.audio('enemyDeath', 'assets/audio/enemy-death.wav');
+    this.load.audio('hemoglobinPickup', 'assets/audio/hemoglobin-pickup.wav');
+    this.load.audio('playerDeath', 'assets/audio/player-death.wav');
+    this.load.audio('playerShoot', 'assets/audio/player-shoot.wav');
 
 
   },
