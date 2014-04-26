@@ -27,8 +27,10 @@
 
       this.enemies.add(enemy);
 
-      var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
-      this.friendlies.add(friendly);
+      for(var i = 0; i < 5; i++) {
+        var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+        this.friendlies.add(friendly);
+      }
 
       for(var i = 0; i < 10; i++ ){
         var oxygen = new Primative(this.game, this.game.world.randomX, this.game.world.randomY, 4, '#0e85e1');
@@ -43,11 +45,28 @@
           slowArrival: true,
           slowingRadius: 50,
         },
+        evade: {
+          enabled: true,
+          target: this.enemies,
+          viewDistance: 50,
+          strength: 5.0
+        },
         game: {
           debug: true
         },
         forces: {
-          maxForce: 10
+          maxForce: 100
+        }
+      });
+
+      this.enemies.setAll('automataOptions', {
+        pursue: {
+          enabled: true,
+          target: this.friendlies,
+          viewDistance: 200
+        },
+        game: {
+          debug: true
         }
       });
     },

@@ -34,6 +34,7 @@ Automata.prototype.update = function() {
       if(behavior.enabled) {
         accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
         if(accel.getMagnitude() > 0) {
+          accel.scaleBy(behavior.strength);
           this.applyForce(accel);
           priority.continue = false;
         }
@@ -61,6 +62,9 @@ Automata.prototype.applyForce = function(force) {
   this.body.velocity.add(velocity.x, velocity.y);
 };
 
+
+
+/** Behaviors **/
 
 Automata.prototype.seek = function(target, viewDistance, isSeeking) {
   isSeeking = typeof isSeeking === 'undefined' ? true : isSeeking;
@@ -100,7 +104,6 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
         
 
         steer = Phaser.Point.subtract(desired, this.body.velocity);
-        console.log('lol?');
       }
     }
 
@@ -111,6 +114,112 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
   return steer;
 };
 
+Automata.prototype.flee = function(target, viewDistance, isFleeing) {
+  isFleeing = typeof isFleeing === 'undefined' ? true : isFleeing;
+  viewDistance = viewDistance || this.options.flee.viewDistance;
+  var steer = new Phaser.Point(), 
+      desired;
+  if(!!target) {
+    if(target instanceof Phaser.Group) {
+      target = this.getClosestInRange(target, viewDistance);
+    }
+    
+    desired = Phaser.Point.subtract(target, this.position);
+    if (desired.getMagnitude() < viewDistance) {
+      desired.normalize();
+    
+      desired.multiply(-this.options.forces.maxVelocity, -this.options.forces.maxVelocity);
+
+      steer = Phaser.Point.subtract(desired, this.body.velocity);
+    }
+    if(this.options.game.debug && isFleeing) {
+      this.debug.renderFlee(this.position, target, viewDistance, steer.getMagnitude());  
+    }
+  }
+  return steer;
+};
+
+Automata.prototype.pursue = function(target, viewDistance) {
+  var steer = new Phaser.Point(),
+      distance;
+  if(!!target) {
+
+    if(target instanceof Phaser.Group) {
+      target = this.getClosestInRange(target, viewDistance);
+    }
+    if(!!target) {
+      distance = Phaser.Point.distance(target, this.position);
+      if(distance < viewDistance) {
+        steer = this.seek(this.getFuturePosition(target), viewDistance, false);
+      }
+    }
+  }
+
+  if (this.options.game.debug) {
+    this.renderDebug.pursue(this.position, !!target ? target.position : new Phaser.Point(), viewDistance, steer.getMagnitude());
+  }
+
+  return steer;
+};
+
+Automata.prototype.evade = function(target, viewDistance) {
+  var steer = new Phaser.Point(),
+    distance, targets, futurePosition;
+
+  function comparator(a, b) {
+    var da = Phaser.Point.distance(a, this.position);
+    var db = Phaser.Point.distance(b, this.position);
+    return da - db;
+  }
+
+  if(!!target) {
+
+    if(target instanceof Phaser.Group) {
+      targets = [this.getClosestInRange(target, viewDistance)];
+    } else {
+      targets = [target];
+    }
+
+    targets.sort(comparator.bind(this));
+    var targetCounter = 1;
+    //targets = targets.slice(0,3);
+    var totalDistance = 0;
+    targets.forEach(function(t) {
+      if (t) {
+        distance = Phaser.Point.distance(t, this.position);
+        steer = Phaser.Point.add(steer, this.flee(this.getFuturePosition(t), viewDistance, false).scaleBy(viewDistance / distance));
+        totalDistance += distance;
+        targetCounter++;
+      }
+    }, this);
+
+    steer.divide(targetCounter, targetCounter);
+    
+  }
+
+  if (this.options.game.debug) {
+    this.renderDebug.evade(this.position, futurePosition ? [futurePosition] : targets, viewDistance, steer.getMagnitude());
+  }
+  return steer;
+};
+
+Automata.prototype.wander = function() {
+  this.options.wander.theta += this.game.rnd.realInRange(-this.options.wander.change, this.options.wander.change);
+
+  var circleLocation, steer, circleOffset;
+
+  circleLocation = this.body.velocity.clone();
+  circleLocation.normalize();
+  circleLocation.scaleBy(this.options.wander.distance * this.radius);
+
+  circleOffset = new Phaser.Point(this.options.wander.radius * this.radius * Math.cos(this.options.wander.theta),
+                                  this.options.wander.radius * this.radius * Math.sin(this.options.wander.theta));
+
+  steer = Phaser.Point.add(circleLocation, circleOffset);
+
+  return steer.scaleBy(this.options.wander.strength);
+  
+};
 
 Automata.prototype.getAllInRange = function(targets, viewDistance) {
   var inRange = [], difference;
@@ -146,24 +255,25 @@ Automata.prototype.getClosestInRange = function(targetGroup, viewDistance) {
   return closestTarget;
 };
 
+Automata.prototype.getFuturePosition = function(target) {
+  var difference, distance, time, targetPosition,
+      tpos = target.position, pos = this.position;
 
-Automata.prototype.wander = function() {
-  this.options.wander.theta += this.game.rnd.realInRange(-this.options.wander.change, this.options.wander.change);
+  difference = Phaser.Point.subtract(tpos, pos);
+  distance = difference.getMagnitude();
+  if (!!target.body.velocity.getMagnitude()) {
+    time = distance / target.body.velocity.getMagnitude();
+    targetPosition = Phaser.Point.multiply(target.body.velocity, new Phaser.Point(time,time));
+    targetPosition.add(tpos.x, tpos.y);
+  } else {
+    targetPosition = tpos;
+  }
 
-  var circleLocation, steer, circleOffset;
-
-  circleLocation = this.body.velocity.clone();
-  circleLocation.normalize();
-  circleLocation.scaleBy(this.options.wander.distance * this.radius);
-
-  circleOffset = new Phaser.Point(this.options.wander.radius * this.radius * Math.cos(this.options.wander.theta),
-                                  this.options.wander.radius * this.radius * Math.sin(this.options.wander.theta));
-
-  steer = Phaser.Point.add(circleLocation, circleOffset);
-
-  return steer.scaleBy(this.options.wander.strength);
-  
+  return targetPosition;
 };
+
+
+
 
 
 Automata.prototype.checkBounds = function() {
@@ -258,7 +368,6 @@ Automata.defaultOptions = Object.freeze({
   evade: {
     name: 'evade',
     enabled: false,
-    intelligent: false,
     target: null,
     strength: 1.0,
     viewDistance: Number.MAX_VALUE,
@@ -333,6 +442,52 @@ Automata.debug.prototype = Object.create({
       this.setLabel(position, 'seeking', Phaser.Point.distance(position, target).toFixed(2), color, alpha);
     }
 
+  },
+  pursue: function(position, target, viewDistance, active, color, alpha) {
+
+    active = !!active;
+    color = color || 0x89fdbd;
+    alpha = alpha || 0.25;
+    
+
+    this.drawSensorRange(position, viewDistance, active, color, alpha);
+    if(active) {
+      this.drawLineToTarget(position, target);
+      this.setLabel(position, 'pursuing', Phaser.Point.distance(position, target).toFixed(2), color, alpha);
+    }
+
+  },
+  flee: function(position, target, viewDistance, active, color, alpha) {
+
+    active = !!active;
+    color = color || 0xfd89fc;
+    alpha = alpha || 0.25;
+  
+    
+    this.drawSensorRange(position, viewDistance, active, color, alpha);
+
+    if(active) {
+      this.drawLineToTarget(position, target);
+      this.setLabel(position, 'fleeing', Phaser.Point.distance(position, target).toFixed(2), color, alpha);
+    }
+  },
+  evade: function(position, targets, viewDistance, active, color, alpha) {
+
+    active = !!active;
+    color = color || 0xff0000;
+    alpha = alpha || 0.25;
+  
+    
+    this.drawSensorRange(position, viewDistance, active, color, alpha);
+
+    if(active) {
+      targets.forEach(function(target) {
+        this.drawLineToTarget(position, target);  
+      }, this);
+      
+      this.setLabel(position, 'evading', Phaser.Point.distance(position, targets[0]).toFixed(2), color, alpha);
+    }
+    
   },
   drawSensorRange: function(position, viewDistance, active, color, alpha) {
     this.fill(color, alpha, active, function() {
