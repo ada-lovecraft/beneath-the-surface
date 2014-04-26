@@ -188,7 +188,7 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
       steer = Phaser.Point.subtract(desired, this.body.velocity);
     }
     if(this.options.game.debug && isFleeing) {
-      this.debug.renderFlee(this.position, target, viewDistance, steer.getMagnitude());  
+      this.renderDebug.flee(this.position, target, viewDistance, steer.getMagnitude());  
     }
   }
   return steer;
@@ -230,14 +230,13 @@ Automata.prototype.evade = function(target, viewDistance) {
   if(!!target) {
 
     if(target instanceof Phaser.Group) {
-      targets = [this.getClosestInRange(target, viewDistance)];
+      targets = this.getAllInRange(target, viewDistance);
     } else {
       targets = [target];
     }
 
     targets.sort(comparator.bind(this));
     var targetCounter = 1;
-    //targets = targets.slice(0,3);
     var totalDistance = 0;
     targets.forEach(function(t) {
       if (t) {
@@ -328,6 +327,95 @@ Automata.prototype.getFuturePosition = function(target) {
 };
 
 
+/** Flocking **/
+Automata.prototype.flock = function() {
+  var steer = new Phaser.Point();
+  this.applyForce(this.separate());
+  this.applyForce(this.align());
+  this.applyForce(this.cohesion());
+  return steer;
+};
+
+Automata.prototype.separate = function() {
+  var steer = new Phaser.Point();
+  var count = 0;
+
+  this.options.flocking.flock.forEachExists(function(Automata) {
+    var d = this.position.distance(Automata.position);
+
+    if((d > 0) && (d < this.options.flocking.separation.desiredSeparation)) {
+      var diff = Phaser.Point.subtract(this.position, Automata.position);
+      diff.normalize();
+      diff.divide(d,d);
+      steer.add(diff.x,diff.y);
+      count++;
+    }
+  }, this);
+
+  if(count > 0) {
+    steer.divide(count, count);
+  }
+
+  if(steer.getMagnitude() > 0) {
+    steer.normalize();
+    steer.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    steer.subtract(this.body.velocity.x, this.body.velocity.y);
+    steer.setMagnitude(this.options.flocking.separation.strength);
+  }
+
+  return steer;
+};
+
+Automata.prototype.align = function() {
+  var sum = new Phaser.Point();
+  var steer = new Phaser.Point();
+  var count = 0;
+  this.options.flocking.flock.forEach(function(Automata) {
+    var d = this.position.distance(Automata.position);
+    if ((d > this.options.flocking.minDistance) && d < this.options.flocking.maxDistance) {
+      sum.add(Automata.body.velocity.x, Automata.body.velocity.y);
+      count++;
+    }
+  }, this);
+
+  if (count > 0) {
+    sum.divide(count, count);  
+
+    sum.normalize();
+    sum.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    steer = Phaser.Point.subtract(sum, this.body.velocity);
+    steer.setMagnitude(this.options.flocking.alignment.strength);
+  }
+
+  return steer;
+};
+
+Automata.prototype.cohesion = function() {
+  
+  var sum = new Phaser.Point();
+  var steer = new Phaser.Point();
+  var count = 0;
+
+  this.options.flocking.flock.forEach(function(Automata) {
+    var d = Phaser.Point.distance(this.position, Automata.position);
+    if ((d > 0) && d < this.options.flocking.maxDistance) {
+      sum.add(Automata.position.x, Automata.position.y);
+      count++;
+    }
+  }, this);
+
+  if (count > 0) {
+    sum.divide(count, count);  
+    steer = Phaser.Point.subtract(sum, this.position);
+    steer.normalize().setMagnitude(this.options.flocking.cohesion.strength);
+    return steer;
+    //return this.seek(sum)
+  }
+  return steer;
+};
+
+
+
 
 
 
@@ -369,7 +457,6 @@ Automata.defaultOptions = Object.freeze({
   },
   forces: {
     maxVelocity: 100.0,
-    steeringStrength: 0.5,
     maxForce: 100.0
   },
   flocking: {
@@ -408,7 +495,7 @@ Automata.defaultOptions = Object.freeze({
     target: null,
     strength: 1.0,
     viewDistance: Number.MAX_VALUE,
-    priority: 2,
+    priority: 1,
     method: Automata.prototype.flee
   },
   pursue: {
@@ -691,6 +778,10 @@ var Cell = require('./cell');
 var Friendly = function(game, x, y, size, color, maxHealth) {
   color = color || '#fc8383';
   Cell.call(this, game, x, y, size, color, maxHealth);
+  this.canBeDamaged = true;
+  this.panicTween = null;
+  this.ouchSound = this.game.add.audio('ouch');
+  this.oxygenSound = this.game.add.audio('oxygenPickup');
 
 };
 
@@ -711,6 +802,56 @@ Friendly.prototype.update = function() {
         enabled: true
       }
     };
+  }
+  if(this.options.evade.target && this.canBeDamaged) {
+    this.game.physics.arcade.overlap(this, this.options.evade.target, this.takeDamage, null, this);  
+  }
+  this.game.physics.arcade.overlap(this, this.options.seek.target, this.oxygenPickup, null, this);
+
+};
+
+Friendly.prototype.oxygenPickup = function(friendly, oxygen) {
+  if(friendly.health < friendly.maxHealth) {
+    oxygen.kill();
+    friendly.health++;
+    this.oxygenSound.play();
+  }
+};
+
+Friendly.prototype.takeDamage = function(self, enemy) {
+  this.ouchSound.play();
+  self.health--;
+  if (this.health === 0) {
+    this.kill();
+  } else {
+    this.canBeDamaged = false;
+    this.automataOptions = {
+      evade: {
+        enabled: false
+      },
+      flee: {
+        enabled: true
+      },
+      forces: {
+        maxVelocity: 300
+      }
+    };
+
+    this.panicTween = this.game.add.tween(this).to({alpha: 0.75 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
+    this.panicTween.onComplete.add(function() {
+      this.canBeDamaged = true;
+      this.automataOptions = {
+        evade: {
+          enabled: true
+        },
+        flee: {
+          enabled: false
+        },
+        forces: {
+          maxVelocity: 100
+        }
+      };
+    }, this);
   }
 };
 
@@ -921,10 +1062,12 @@ module.exports = Menu;
       this.enemies = this.game.add.group();
       
       this.friendlies = this.game.add.group();
-      
-      var enemy = new Enemy(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      for(var i =0; i < 10; i++) {
+        var enemy = new Enemy(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+        this.enemies.add(enemy);
+      }
 
-      this.enemies.add(enemy);
+      
 
       for(var i = 0; i < 5; i++) {
         var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
@@ -933,6 +1076,8 @@ module.exports = Menu;
 
       for(var i = 0; i < 10; i++ ){
         var oxygen = new Primative(this.game, this.game.world.randomX, this.game.world.randomY, 4, '#0e85e1');
+        oxygen.anchor.setTo(0.5, 0.5);
+        this.game.physics.arcade.enableBody(oxygen);
         this.oxygen.add(oxygen);
       }
 
@@ -941,20 +1086,18 @@ module.exports = Menu;
           enabled: true,
           target: this.oxygen,
           viewDistance: 100,
-          slowArrival: true,
-          slowingRadius: 50,
         },
         evade: {
           enabled: true,
           target: this.enemies,
-          viewDistance: 50,
-          strength: 5.0
+          strength: 5.0,
+          viewDistance: 100,
+        },
+        flee:{
+          target: this.enemies
         },
         game: {
-          debug: true
-        },
-        forces: {
-          maxForce: 100
+          debug: false
         }
       });
 
@@ -962,23 +1105,17 @@ module.exports = Menu;
         pursue: {
           enabled: true,
           target: this.friendlies,
-          viewDistance: 200
+          viewDistance: 100
         },
         game: {
-          debug: true
+          debug: false
         }
       });
     },
     update: function() {
-      this.game.physics.arcade.overlap(this.friendlies, this.oxygen, this.oxygenPickup, null, this);
-
+      
     },
-    oxygenPickup: function(friendly, oxygen) {
-      if(friendly.health < friendly.maxHealth) {
-        oxygen.kill();
-        friendly.health++;
-      }
-    }
+    
   };
   
   module.exports = Play;
@@ -999,6 +1136,8 @@ Preload.prototype = {
     this.load.image('yeoman', 'assets/yeoman-logo.png');
     this.load.bitmapFont('minecraftia', 'assets/fonts/minecraftia.png', 'assets/fonts/minecraftia.xml');
     this.load.script('HudManager', 'js/plugins/HudManager.js');
+    this.load.audio('ouch', 'assets/audio/ouch.wav');
+    this.load.audio('oxygenPickup', 'assets/audio/oxygen-pickup.wav');
 
 
   },

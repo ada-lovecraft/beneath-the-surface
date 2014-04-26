@@ -133,7 +133,7 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
       steer = Phaser.Point.subtract(desired, this.body.velocity);
     }
     if(this.options.game.debug && isFleeing) {
-      this.debug.renderFlee(this.position, target, viewDistance, steer.getMagnitude());  
+      this.renderDebug.flee(this.position, target, viewDistance, steer.getMagnitude());  
     }
   }
   return steer;
@@ -175,14 +175,13 @@ Automata.prototype.evade = function(target, viewDistance) {
   if(!!target) {
 
     if(target instanceof Phaser.Group) {
-      targets = [this.getClosestInRange(target, viewDistance)];
+      targets = this.getAllInRange(target, viewDistance);
     } else {
       targets = [target];
     }
 
     targets.sort(comparator.bind(this));
     var targetCounter = 1;
-    //targets = targets.slice(0,3);
     var totalDistance = 0;
     targets.forEach(function(t) {
       if (t) {
@@ -273,6 +272,95 @@ Automata.prototype.getFuturePosition = function(target) {
 };
 
 
+/** Flocking **/
+Automata.prototype.flock = function() {
+  var steer = new Phaser.Point();
+  this.applyForce(this.separate());
+  this.applyForce(this.align());
+  this.applyForce(this.cohesion());
+  return steer;
+};
+
+Automata.prototype.separate = function() {
+  var steer = new Phaser.Point();
+  var count = 0;
+
+  this.options.flocking.flock.forEachExists(function(Automata) {
+    var d = this.position.distance(Automata.position);
+
+    if((d > 0) && (d < this.options.flocking.separation.desiredSeparation)) {
+      var diff = Phaser.Point.subtract(this.position, Automata.position);
+      diff.normalize();
+      diff.divide(d,d);
+      steer.add(diff.x,diff.y);
+      count++;
+    }
+  }, this);
+
+  if(count > 0) {
+    steer.divide(count, count);
+  }
+
+  if(steer.getMagnitude() > 0) {
+    steer.normalize();
+    steer.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    steer.subtract(this.body.velocity.x, this.body.velocity.y);
+    steer.setMagnitude(this.options.flocking.separation.strength);
+  }
+
+  return steer;
+};
+
+Automata.prototype.align = function() {
+  var sum = new Phaser.Point();
+  var steer = new Phaser.Point();
+  var count = 0;
+  this.options.flocking.flock.forEach(function(Automata) {
+    var d = this.position.distance(Automata.position);
+    if ((d > this.options.flocking.minDistance) && d < this.options.flocking.maxDistance) {
+      sum.add(Automata.body.velocity.x, Automata.body.velocity.y);
+      count++;
+    }
+  }, this);
+
+  if (count > 0) {
+    sum.divide(count, count);  
+
+    sum.normalize();
+    sum.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    steer = Phaser.Point.subtract(sum, this.body.velocity);
+    steer.setMagnitude(this.options.flocking.alignment.strength);
+  }
+
+  return steer;
+};
+
+Automata.prototype.cohesion = function() {
+  
+  var sum = new Phaser.Point();
+  var steer = new Phaser.Point();
+  var count = 0;
+
+  this.options.flocking.flock.forEach(function(Automata) {
+    var d = Phaser.Point.distance(this.position, Automata.position);
+    if ((d > 0) && d < this.options.flocking.maxDistance) {
+      sum.add(Automata.position.x, Automata.position.y);
+      count++;
+    }
+  }, this);
+
+  if (count > 0) {
+    sum.divide(count, count);  
+    steer = Phaser.Point.subtract(sum, this.position);
+    steer.normalize().setMagnitude(this.options.flocking.cohesion.strength);
+    return steer;
+    //return this.seek(sum)
+  }
+  return steer;
+};
+
+
+
 
 
 
@@ -314,7 +402,6 @@ Automata.defaultOptions = Object.freeze({
   },
   forces: {
     maxVelocity: 100.0,
-    steeringStrength: 0.5,
     maxForce: 100.0
   },
   flocking: {
@@ -353,7 +440,7 @@ Automata.defaultOptions = Object.freeze({
     target: null,
     strength: 1.0,
     viewDistance: Number.MAX_VALUE,
-    priority: 2,
+    priority: 1,
     method: Automata.prototype.flee
   },
   pursue: {

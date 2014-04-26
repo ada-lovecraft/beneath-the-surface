@@ -22,10 +22,12 @@
       this.enemies = this.game.add.group();
       
       this.friendlies = this.game.add.group();
-      
-      var enemy = new Enemy(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      for(var i =0; i < 10; i++) {
+        var enemy = new Enemy(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+        this.enemies.add(enemy);
+      }
 
-      this.enemies.add(enemy);
+      
 
       for(var i = 0; i < 5; i++) {
         var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
@@ -34,6 +36,8 @@
 
       for(var i = 0; i < 10; i++ ){
         var oxygen = new Primative(this.game, this.game.world.randomX, this.game.world.randomY, 4, '#0e85e1');
+        oxygen.anchor.setTo(0.5, 0.5);
+        this.game.physics.arcade.enableBody(oxygen);
         this.oxygen.add(oxygen);
       }
 
@@ -42,20 +46,18 @@
           enabled: true,
           target: this.oxygen,
           viewDistance: 100,
-          slowArrival: true,
-          slowingRadius: 50,
         },
         evade: {
           enabled: true,
           target: this.enemies,
-          viewDistance: 50,
-          strength: 5.0
+          strength: 5.0,
+          viewDistance: 100,
+        },
+        flee:{
+          target: this.enemies
         },
         game: {
-          debug: true
-        },
-        forces: {
-          maxForce: 100
+          debug: false
         }
       });
 
@@ -63,23 +65,17 @@
         pursue: {
           enabled: true,
           target: this.friendlies,
-          viewDistance: 200
+          viewDistance: 100
         },
         game: {
-          debug: true
+          debug: false
         }
       });
     },
     update: function() {
-      this.game.physics.arcade.overlap(this.friendlies, this.oxygen, this.oxygenPickup, null, this);
-
+      
     },
-    oxygenPickup: function(friendly, oxygen) {
-      if(friendly.health < friendly.maxHealth) {
-        oxygen.kill();
-        friendly.health++;
-      }
-    }
+    
   };
   
   module.exports = Play;

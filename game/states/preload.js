@@ -14,6 +14,8 @@ Preload.prototype = {
     this.load.image('yeoman', 'assets/yeoman-logo.png');
     this.load.bitmapFont('minecraftia', 'assets/fonts/minecraftia.png', 'assets/fonts/minecraftia.xml');
     this.load.script('HudManager', 'js/plugins/HudManager.js');
+    this.load.audio('ouch', 'assets/audio/ouch.wav');
+    this.load.audio('oxygenPickup', 'assets/audio/oxygen-pickup.wav');
 
 
   },
