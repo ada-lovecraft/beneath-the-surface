@@ -13,7 +13,7 @@ Preload.prototype = {
     this.load.setPreloadSprite(this.asset);
     this.load.image('yeoman', 'assets/yeoman-logo.png');
     this.load.bitmapFont('minecraftia', 'assets/fonts/minecraftia.png', 'assets/fonts/minecraftia.xml');
-    this.load.script('HudManager', 'js/plugins/HUDManager.js');
+    this.load.script('HudManager', 'js/plugins/HudManager.js');
 
 
   },

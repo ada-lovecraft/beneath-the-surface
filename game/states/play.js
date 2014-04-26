@@ -21,21 +21,21 @@
       
       this.enemies = this.game.add.group();
       
-      this.cells = this.game.add.group();
+      this.friendlies = this.game.add.group();
       
       var enemy = new Enemy(this.game, this.game.world.randomX, this.game.world.randomY, 16);
 
       this.enemies.add(enemy);
 
-      var cell = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
-      this.cells.add(cell);
+      var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      this.friendlies.add(friendly);
 
       for(var i = 0; i < 10; i++ ){
         var oxygen = new Primative(this.game, this.game.world.randomX, this.game.world.randomY, 4, '#0e85e1');
         this.oxygen.add(oxygen);
       }
 
-      this.cells.setAll('automataOptions', {
+      this.friendlies.setAll('automataOptions', {
         seek: {
           enabled: true,
           target: this.oxygen,
@@ -52,10 +52,14 @@
       });
     },
     update: function() {
+      this.game.physics.arcade.overlap(this.friendlies, this.oxygen, this.oxygenPickup, null, this);
 
     },
-    clickListener: function() {
-      this.game.state.start('gameover');
+    oxygenPickup: function(friendly, oxygen) {
+      if(friendly.health < friendly.maxHealth) {
+        oxygen.kill();
+        friendly.health++;
+      }
     }
   };
   

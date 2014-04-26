@@ -765,21 +765,21 @@ module.exports = Menu;
       
       this.enemies = this.game.add.group();
       
-      this.cells = this.game.add.group();
+      this.friendlies = this.game.add.group();
       
       var enemy = new Enemy(this.game, this.game.world.randomX, this.game.world.randomY, 16);
 
       this.enemies.add(enemy);
 
-      var cell = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
-      this.cells.add(cell);
+      var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      this.friendlies.add(friendly);
 
       for(var i = 0; i < 10; i++ ){
         var oxygen = new Primative(this.game, this.game.world.randomX, this.game.world.randomY, 4, '#0e85e1');
         this.oxygen.add(oxygen);
       }
 
-      this.cells.setAll('automataOptions', {
+      this.friendlies.setAll('automataOptions', {
         seek: {
           enabled: true,
           target: this.oxygen,
@@ -796,10 +796,14 @@ module.exports = Menu;
       });
     },
     update: function() {
+      this.game.physics.arcade.overlap(this.friendlies, this.oxygen, this.oxygenPickup, null, this);
 
     },
-    clickListener: function() {
-      this.game.state.start('gameover');
+    oxygenPickup: function(friendly, oxygen) {
+      if(friendly.health < friendly.maxHealth) {
+        oxygen.kill();
+        friendly.health++;
+      }
     }
   };
   
@@ -820,7 +824,7 @@ Preload.prototype = {
     this.load.setPreloadSprite(this.asset);
     this.load.image('yeoman', 'assets/yeoman-logo.png');
     this.load.bitmapFont('minecraftia', 'assets/fonts/minecraftia.png', 'assets/fonts/minecraftia.xml');
-    this.load.script('HudManager', 'js/plugins/HUDManager.js');
+    this.load.script('HudManager', 'js/plugins/HudManager.js');
 
 
   },
