@@ -69,6 +69,57 @@ Automata.defaultOptions = Object.freeze({
     flock: null,
     priority: 3,
     method: Automata.prototype.flock
+  },
+  seek: {
+    name: 'seek',
+    enabled: false,
+    target: null,
+    strength: 1.0,
+    slowArrial: false, 
+    slowingRadius: 10,
+    viewDistance: Number.MAX_VALUE,
+    priority: 2,
+    method: Automata.prototype.seek
+  },
+  flee: {
+    name: 'flee',
+    enabled: false,
+    target: null,
+    strength: 1.0,
+    viewDistance: Number.MAX_VALUE,
+    priority: 2,
+    method: Automata.prototype.flee
+  },
+  pursue: {
+    name: 'pursue',
+    enabled: false,
+    target: null,
+    strength: 1.0,
+    viewDistance: Number.MAX_VALUE,
+    priority: 1,
+    method: Automata.prototype.pursue
+  },
+  evade: {
+    name: 'evade',
+    enabled: false,
+    intelligent: false,
+    target: null,
+    strength: 1.0,
+    viewDistance: Number.MAX_VALUE,
+    priority: 1,
+    method: Automata.prototype.evade
+  },
+  wander: {
+    name: 'wander',
+    enabled: false,
+    intelligent: false,
+    strength: 1.0,
+    distance: 3.5,
+    radius: 3.0,
+    theta: 0,
+    change: 0.3,
+    priority: 6,
+    method: Automata.prototype.wander
   }
 });
 
