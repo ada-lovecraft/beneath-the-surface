@@ -1,8 +1,22 @@
 'use strict';
-
-var Automata = function(game, x, y) {
+var Utils = require('../plugins/utils');
+var Automata = function(game, x, y, options) {
   Phaser.Sprite.call(this, game, x,y);
 
+  this.options = _.merge(Automata.defaultOptions, options, _.defaults);
+
+  this.graphics = this.game.add.graphics(0,0);
+
+  this.priorityList = _.chain(this.options)
+  .groupBy('priority')
+  .map(function(element, key, obj) {
+    obj[key].id = parseInt(key);
+    return obj[key];
+  }).value();
+
+  this.priorityList.sort(function(a,b) {
+    return a.id - b.id;
+  });
 
   // initialize your prefab here
   
@@ -94,7 +108,6 @@ Automata.defaultOptions = Object.freeze({
   wander: {
     name: 'wander',
     enabled: false,
-    intelligent: false,
     strength: 1.0,
     distance: 3.5,
     radius: 3.0,
@@ -105,5 +118,43 @@ Automata.defaultOptions = Object.freeze({
   }
 });
 
+Automata.debug = function(graphics) {
+  this.graphics = graphics;
+
+  this.game = this.graphics.game;
+
+  this.actionLabel = this.game.add.text(0,0,'');
+  this.actionLabel.anchor.setTo(0.5, 0.5);
+  this.actionLabel.fontSize = 12;
+  this.actionLabel.font = 'Helvetica';
+
+  this.distanceLabel = this.game.add.text(0,0,'');
+  this.distanceLabel.anchor.setTo(0.5, 0.5);
+  this.distanceLabel.fontSize = 12;
+  this.distanceLabel.font = 'Helvetica';
+
+};
+
+Automata.debug.prototype = Object.create({ 
+  setLabel: function(position, text, distance, color, alpha) {
+    color = Utils.hexToColorString(color);
+    alpha = alpha || 1;
+
+    this.actionLabel.x = position.x;
+    this.actionLabel.y = position.y + 50;
+
+    this.actionLabel.x = position.x;
+    this.actionLabel.y = position.y + 65;
+
+
+    this.actionLabel.setText(text);
+    this.actionLabel.fill = color;
+    this.actionLabel.alpha = alpha;
+
+    this.distanceLabel.setText(distance);
+    this.distanceLabel.fill = color;
+    this.distanceLabel.alpha = alpha;
+  }
+});
 
 module.exports = Automata;

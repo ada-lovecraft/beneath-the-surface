@@ -15,12 +15,63 @@ window.onload = function () {
 
   game.state.start('boot');
 };
-},{"./states/boot":7,"./states/gameover":8,"./states/menu":9,"./states/play":10,"./states/preload":11}],2:[function(require,module,exports){
+},{"./states/boot":8,"./states/gameover":9,"./states/menu":10,"./states/play":11,"./states/preload":12}],2:[function(require,module,exports){
 'use strict';
 
-var Automata = function(game, x, y) {
+// Phaser Point Extensions
+if (!Phaser.Point.prototype.limit) {
+  Phaser.Point.prototype.limit = function(high, low) {
+    high = high || null;
+    low = low || null;
+    if(high && this.getMagnitude() > high) {
+      this.setMagnitude(high);
+    }
+    if(low && this.getMagnitude() < low) {
+      this.setMagnitude(low);
+    }
+
+    return this;
+  };
+}
+
+if (!Phaser.Point.prototype.scaleBy) {
+  Phaser.Point.prototype.scaleBy = function(scalar) {
+    this.multiply(scalar, scalar);
+    return this;
+  };
+}
+
+
+var Utils = function() {};
+
+Utils.hexToColorString = function(value) {
+    if (typeof color === 'number') {
+      //make sure our hexadecimal number is padded out
+      return '#' + ('00000' + (color | 0).toString(16)).substr(-6);
+    }
+};
+
+module.exports = Utils;
+},{}],3:[function(require,module,exports){
+'use strict';
+var Utils = require('../plugins/utils');
+var Automata = function(game, x, y, options) {
   Phaser.Sprite.call(this, game, x,y);
 
+  this.options = _.merge(Automata.defaultOptions, options, _.defaults);
+
+  this.graphics = this.game.add.graphics(0,0);
+
+  this.priorityList = _.chain(this.options)
+  .groupBy('priority')
+  .map(function(element, key, obj) {
+    obj[key].id = parseInt(key);
+    return obj[key];
+  }).value();
+
+  this.priorityList.sort(function(a,b) {
+    return a.id - b.id;
+  });
 
   // initialize your prefab here
   
@@ -112,7 +163,6 @@ Automata.defaultOptions = Object.freeze({
   wander: {
     name: 'wander',
     enabled: false,
-    intelligent: false,
     strength: 1.0,
     distance: 3.5,
     radius: 3.0,
@@ -123,10 +173,48 @@ Automata.defaultOptions = Object.freeze({
   }
 });
 
+Automata.debug = function(graphics) {
+  this.graphics = graphics;
+
+  this.game = this.graphics.game;
+
+  this.actionLabel = this.game.add.text(0,0,'');
+  this.actionLabel.anchor.setTo(0.5, 0.5);
+  this.actionLabel.fontSize = 12;
+  this.actionLabel.font = 'Helvetica';
+
+  this.distanceLabel = this.game.add.text(0,0,'');
+  this.distanceLabel.anchor.setTo(0.5, 0.5);
+  this.distanceLabel.fontSize = 12;
+  this.distanceLabel.font = 'Helvetica';
+
+};
+
+Automata.debug.prototype = Object.create({ 
+  setLabel: function(position, text, distance, color, alpha) {
+    color = Utils.hexToColorString(color);
+    alpha = alpha || 1;
+
+    this.actionLabel.x = position.x;
+    this.actionLabel.y = position.y + 50;
+
+    this.actionLabel.x = position.x;
+    this.actionLabel.y = position.y + 65;
+
+
+    this.actionLabel.setText(text);
+    this.actionLabel.fill = color;
+    this.actionLabel.alpha = alpha;
+
+    this.distanceLabel.setText(distance);
+    this.distanceLabel.fill = color;
+    this.distanceLabel.alpha = alpha;
+  }
+});
 
 module.exports = Automata;
 
-},{}],3:[function(require,module,exports){
+},{"../plugins/utils":2}],4:[function(require,module,exports){
 'use strict';
 
 var Primative = require('./primative');
@@ -160,13 +248,20 @@ module.exports = CrossHair;
 
 
 
-},{"./primative":6}],4:[function(require,module,exports){
+},{"./primative":7}],5:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var Automata = require('./automata');
 var Enemy = function(game, x, y, size, color) {
   color = color || '#88b25b';
-  Automata.call(this,game,x,y);
+
+  var options = {
+    wander: {
+      enabled: true
+    }
+  };
+
+  Automata.call(this,game,x,y, options);
   Primative.call(this, game, x, y, size, color);
   this.anchor.setTo(0.5, 0.5);
   this.game.physics.arcade.enableBody(this);
@@ -184,7 +279,7 @@ Enemy.prototype.update = function() {
 
 module.exports = Enemy;
 
-},{"./automata":2,"./primative":6}],5:[function(require,module,exports){
+},{"./automata":3,"./primative":7}],6:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var CrossHair = require('./crosshair');
@@ -251,7 +346,7 @@ Player.prototype.fire = function() {
 
 module.exports = Player;
 
-},{"./crosshair":3,"./primative":6}],6:[function(require,module,exports){
+},{"./crosshair":4,"./primative":7}],7:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   this.size = size;
@@ -285,7 +380,7 @@ Primative.prototype.createTexture = function() {
 
 module.exports = Primative;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 
 'use strict';
 
@@ -305,7 +400,7 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 
 'use strict';
 function GameOver() {}
@@ -331,7 +426,7 @@ GameOver.prototype = {
 };
 module.exports = GameOver;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 
 'use strict';
 function Menu() {}
@@ -364,7 +459,7 @@ Menu.prototype = {
 
 module.exports = Menu;
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 
   'use strict';
   var Player = require('../prefabs/player');
@@ -391,7 +486,7 @@ module.exports = Menu;
   };
   
   module.exports = Play;
-},{"../prefabs/enemy":4,"../prefabs/player":5}],11:[function(require,module,exports){
+},{"../prefabs/enemy":5,"../prefabs/player":6}],12:[function(require,module,exports){
 'use strict';
 function Preload() {
   this.asset = null;

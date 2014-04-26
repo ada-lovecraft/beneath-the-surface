@@ -3,7 +3,14 @@ var Primative = require('./primative');
 var Automata = require('./automata');
 var Enemy = function(game, x, y, size, color) {
   color = color || '#88b25b';
-  Automata.call(this,game,x,y);
+
+  var options = {
+    wander: {
+      enabled: true
+    }
+  };
+
+  Automata.call(this,game,x,y, options);
   Primative.call(this, game, x, y, size, color);
   this.anchor.setTo(0.5, 0.5);
   this.game.physics.arcade.enableBody(this);
