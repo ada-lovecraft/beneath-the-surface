@@ -12,7 +12,7 @@ var Automata = function(game, x, y, options) {
 
   
 
-  this.debug = new Automata.debug(this.game.add.graphics(0,0));
+  this.renderDebug = new Automata.debug(this.graphics);
   // initialize your prefab here
   
 };
@@ -24,7 +24,7 @@ Automata.prototype.update = function() {
   
   // write your prefab's specific update code here
   if(this.options.game.debug) {
-    this.debug.clear();
+    this.renderDebug.clear();
   }
 
   _.every(this.priorityList, function(priority) {
@@ -91,14 +91,23 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
       if(distance > 0 && distance < viewDistance) {
         desired.normalize();
         if(isSeeking && this.options.seek.slowArrival && distance < this.options.seek.slowingRadius) {
-          desired.scaleBy(this.options.forces.maxVelocity * (distance / this.options.seek.slowingRadius));
+          var m = Phaser.Math.mapLinear(distance,0, viewDistance,0, this.options.forces.maxVelocity);
+          desired.scaleBy(m);
         } else {
           desired.scaleBy(this.options.forces.maxVelocity);
         }
+        
+        
 
         steer = Phaser.Point.subtract(desired, this.body.velocity);
+        console.log('lol?');
       }
     }
+
+  if(this.options.game.debug && isSeeking) {
+    this.renderDebug.seek(this.position, tpos, viewDistance, steer.getMagnitude(), this.options.seek.slowingRadius, distance < this.options.seek.slowingRadius );  
+  }
+
   return steer;
 };
 
@@ -307,9 +316,51 @@ Automata.debug.prototype = Object.create({
     this.distanceLabel.setText(distance);
     this.distanceLabel.fill = color;
     this.distanceLabel.alpha = alpha;
+  },
+  seek: function(position, target, viewDistance, active, slowingRadius, slowActive, color, alpha) {
+
+    active = !!active;
+    color = color || 0x89b7fd;
+    alpha = alpha || 0.25;
+    
+
+    this.drawSensorRange(position, viewDistance, active, color, alpha);
+    if (slowingRadius) {
+      this.drawSensorRange(position, slowingRadius, slowActive, color, alpha)
+    }
+    if(active) {
+      this.drawLineToTarget(position, target);
+      this.setLabel(position, 'seeking', Phaser.Point.distance(position, target).toFixed(2), color, alpha);
+    }
+
+  },
+  drawSensorRange: function(position, viewDistance, active, color, alpha) {
+    this.fill(color, alpha, active, function() {
+      this.graphics.drawCircle(position.x, position.y, viewDistance);
+    });
+  },
+  drawLineToTarget: function(position, target) {
+    this.graphics.moveTo(position.x, position.y);
+    this.graphics.lineTo(target.x, target.y);
+  },
+  fill: function(color, alpha, active, method) {
+    this.graphics.lineStyle( 1, color, alpha);
+    if(active) {
+      this.graphics.beginFill(color, alpha);
+    }
+    method.call(this);
+    if(active) {
+      this.graphics.endFill();
+    }
+  },
+  clear: function() {
+    this.graphics.clear();
+    this.actionLabel.setText('');
+    this.distanceLabel.setText('');
   }
 });
 
+Automata.debug.constructor = Automata.debug;
 
 
 module.exports = Automata;

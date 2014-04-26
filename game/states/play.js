@@ -2,11 +2,15 @@
   'use strict';
   var Player = require('../prefabs/player');
   var Enemy = require('../prefabs/enemy');
-  var Cell = require('../prefabs/cell');
+  var Friendly = require('../prefabs/friendly');
   var Primative = require('../prefabs/primative');
   function Play() {}
   Play.prototype = {
     create: function() {
+      
+      this.gamehud = Phaser.Plugin.HUDManager.create(this.game, this, 'gamehud');
+      this.enemyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'cellhud');
+      this.friendlyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'friendlyhud');
       
       this.game.physics.startSystem(Phaser.Physics.ARCADE);
 
@@ -23,7 +27,7 @@
 
       this.enemies.add(enemy);
 
-      var cell = new Cell(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      var cell = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
       this.cells.add(cell);
 
       for(var i = 0; i < 10; i++ ){
@@ -35,8 +39,15 @@
         seek: {
           enabled: true,
           target: this.oxygen,
+          viewDistance: 100,
           slowArrival: true,
-          slowingRadius: 100,
+          slowingRadius: 50,
+        },
+        game: {
+          debug: true
+        },
+        forces: {
+          maxForce: 10
         }
       });
     },

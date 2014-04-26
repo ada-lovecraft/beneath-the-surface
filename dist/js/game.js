@@ -15,7 +15,7 @@ window.onload = function () {
 
   game.state.start('boot');
 };
-},{"./states/boot":9,"./states/gameover":10,"./states/menu":11,"./states/play":12,"./states/preload":13}],2:[function(require,module,exports){
+},{"./states/boot":10,"./states/gameover":11,"./states/menu":12,"./states/play":13,"./states/preload":14}],2:[function(require,module,exports){
 'use strict';
 
 // Phaser Point Extensions
@@ -67,7 +67,7 @@ var Automata = function(game, x, y, options) {
 
   
 
-  this.debug = new Automata.debug(this.game.add.graphics(0,0));
+  this.renderDebug = new Automata.debug(this.graphics);
   // initialize your prefab here
   
 };
@@ -79,7 +79,7 @@ Automata.prototype.update = function() {
   
   // write your prefab's specific update code here
   if(this.options.game.debug) {
-    this.debug.clear();
+    this.renderDebug.clear();
   }
 
   _.every(this.priorityList, function(priority) {
@@ -146,14 +146,23 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
       if(distance > 0 && distance < viewDistance) {
         desired.normalize();
         if(isSeeking && this.options.seek.slowArrival && distance < this.options.seek.slowingRadius) {
-          desired.scaleBy(this.options.forces.maxVelocity * (distance / this.options.seek.slowingRadius));
+          var m = Phaser.Math.mapLinear(distance,0, viewDistance,0, this.options.forces.maxVelocity);
+          desired.scaleBy(m);
         } else {
           desired.scaleBy(this.options.forces.maxVelocity);
         }
+        
+        
 
         steer = Phaser.Point.subtract(desired, this.body.velocity);
+        console.log('lol?');
       }
     }
+
+  if(this.options.game.debug && isSeeking) {
+    this.renderDebug.seek(this.position, tpos, viewDistance, steer.getMagnitude(), this.options.seek.slowingRadius, distance < this.options.seek.slowingRadius );  
+  }
+
   return steer;
 };
 
@@ -362,9 +371,51 @@ Automata.debug.prototype = Object.create({
     this.distanceLabel.setText(distance);
     this.distanceLabel.fill = color;
     this.distanceLabel.alpha = alpha;
+  },
+  seek: function(position, target, viewDistance, active, slowingRadius, slowActive, color, alpha) {
+
+    active = !!active;
+    color = color || 0x89b7fd;
+    alpha = alpha || 0.25;
+    
+
+    this.drawSensorRange(position, viewDistance, active, color, alpha);
+    if (slowingRadius) {
+      this.drawSensorRange(position, slowingRadius, slowActive, color, alpha)
+    }
+    if(active) {
+      this.drawLineToTarget(position, target);
+      this.setLabel(position, 'seeking', Phaser.Point.distance(position, target).toFixed(2), color, alpha);
+    }
+
+  },
+  drawSensorRange: function(position, viewDistance, active, color, alpha) {
+    this.fill(color, alpha, active, function() {
+      this.graphics.drawCircle(position.x, position.y, viewDistance);
+    });
+  },
+  drawLineToTarget: function(position, target) {
+    this.graphics.moveTo(position.x, position.y);
+    this.graphics.lineTo(target.x, target.y);
+  },
+  fill: function(color, alpha, active, method) {
+    this.graphics.lineStyle( 1, color, alpha);
+    if(active) {
+      this.graphics.beginFill(color, alpha);
+    }
+    method.call(this);
+    if(active) {
+      this.graphics.endFill();
+    }
+  },
+  clear: function() {
+    this.graphics.clear();
+    this.actionLabel.setText('');
+    this.distanceLabel.setText('');
   }
 });
 
+Automata.debug.constructor = Automata.debug;
 
 
 module.exports = Automata;
@@ -373,9 +424,11 @@ module.exports = Automata;
 'use strict';
 var Primative = require('./primative');
 var Automata = require('./automata');
-var Cell = function(game, x, y, size, color) {
+var Cell = function(game, x, y, size, color, maxHealth) {
   size = size || 16;
-  color = color || '#fc8383';
+  color = color || 'white';
+  this.maxHealth = maxHealth || 5;
+  
 
   var options = {
     wander: {
@@ -388,6 +441,14 @@ var Cell = function(game, x, y, size, color) {
 
   this.anchor.setTo(0.5, 0.5);
   this.game.physics.arcade.enableBody(this);
+
+  this.health = this.maxHealth;
+
+  this.healthHUD = Phaser.Plugin.HUDManager.get('cellhud')
+  .addBar(0,0, this.radius * 2, 2, this.maxHealth, 'health', this, Phaser.Plugin.HUDManager.HEALTHBAR, false);
+
+  this.healthHUD.bar.anchor.setTo(0.5, 0.5);
+  this.game.add.existing(this.healthHUD.bar);
   
   
 };
@@ -398,6 +459,8 @@ Cell.prototype.constructor = Cell;
 Cell.prototype.update = function() {
   Automata.prototype.update.call(this);
   // write your prefab's specific update code here
+  this.healthHUD.bar.position.x = this.position.x;
+  this.healthHUD.bar.position.y = this.position.y - this.radius;
   
 };
 
@@ -412,7 +475,7 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
 
 module.exports = Cell;
 
-},{"./automata":3,"./primative":8}],5:[function(require,module,exports){
+},{"./automata":3,"./primative":9}],5:[function(require,module,exports){
 'use strict';
 
 var Primative = require('./primative');
@@ -446,13 +509,13 @@ module.exports = CrossHair;
 
 
 
-},{"./primative":8}],6:[function(require,module,exports){
+},{"./primative":9}],6:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
-var Enemy = function(game, x, y, size, color) {
+var Enemy = function(game, x, y, size, color, maxHealth) {
   color = color || '#88b25b';
-  Cell.call(this, game, x, y, size, color);
+  Cell.call(this, game, x, y, size, color, maxHealth);
 };
 
 Enemy.prototype = Object.create(Cell.prototype);
@@ -460,11 +523,45 @@ Enemy.prototype.constructor = Enemy;
 
 Enemy.prototype.update = function() {
   Cell.prototype.update.call(this);
+  this.healthHUD.bar.position.x = this.position.x;
+  this.healthHUD.bar.position.y = this.position.y - this.radius;
 };
 
 module.exports = Enemy;
 
 },{"./cell":4}],7:[function(require,module,exports){
+'use strict';
+var Cell = require('./cell');
+
+var Friendly = function(game, x, y, size, color, maxHealth) {
+  color = color || '#fc8383';
+  Cell.call(this, game, x, y, size, color, maxHealth);
+
+};
+
+Friendly.prototype = Object.create(Cell.prototype);
+Friendly.prototype.constructor = Friendly;
+
+Friendly.prototype.update = function() {
+  Cell.prototype.update.call(this);
+  if(this.health === this.maxHealth && this.options.seek.enabled) {
+    this.automataOptions = {
+      seek: {
+        enabled: false
+      }
+    };
+  } else if (this.health < this.maxHealth && !this.options.seek.enabled) {
+    this.automataOptions = {
+      seek: {
+        enabled: true
+      }
+    };
+  }
+};
+
+module.exports = Friendly;
+
+},{"./cell":4}],8:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var CrossHair = require('./crosshair');
@@ -531,7 +628,7 @@ Player.prototype.fire = function() {
 
 module.exports = Player;
 
-},{"./crosshair":5,"./primative":8}],8:[function(require,module,exports){
+},{"./crosshair":5,"./primative":9}],9:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   this.size = size;
@@ -565,7 +662,7 @@ Primative.prototype.createTexture = function() {
 
 module.exports = Primative;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 
 'use strict';
 
@@ -585,7 +682,7 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 
 'use strict';
 function GameOver() {}
@@ -611,7 +708,7 @@ GameOver.prototype = {
 };
 module.exports = GameOver;
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 
 'use strict';
 function Menu() {}
@@ -644,16 +741,20 @@ Menu.prototype = {
 
 module.exports = Menu;
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 
   'use strict';
   var Player = require('../prefabs/player');
   var Enemy = require('../prefabs/enemy');
-  var Cell = require('../prefabs/cell');
+  var Friendly = require('../prefabs/friendly');
   var Primative = require('../prefabs/primative');
   function Play() {}
   Play.prototype = {
     create: function() {
+      
+      this.gamehud = Phaser.Plugin.HUDManager.create(this.game, this, 'gamehud');
+      this.enemyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'cellhud');
+      this.friendlyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'friendlyhud');
       
       this.game.physics.startSystem(Phaser.Physics.ARCADE);
 
@@ -670,7 +771,7 @@ module.exports = Menu;
 
       this.enemies.add(enemy);
 
-      var cell = new Cell(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      var cell = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
       this.cells.add(cell);
 
       for(var i = 0; i < 10; i++ ){
@@ -682,8 +783,15 @@ module.exports = Menu;
         seek: {
           enabled: true,
           target: this.oxygen,
+          viewDistance: 100,
           slowArrival: true,
-          slowingRadius: 100,
+          slowingRadius: 50,
+        },
+        game: {
+          debug: true
+        },
+        forces: {
+          maxForce: 10
         }
       });
     },
@@ -696,7 +804,7 @@ module.exports = Menu;
   };
   
   module.exports = Play;
-},{"../prefabs/cell":4,"../prefabs/enemy":6,"../prefabs/player":7,"../prefabs/primative":8}],13:[function(require,module,exports){
+},{"../prefabs/enemy":6,"../prefabs/friendly":7,"../prefabs/player":8,"../prefabs/primative":9}],14:[function(require,module,exports){
 'use strict';
 function Preload() {
   this.asset = null;
@@ -712,6 +820,7 @@ Preload.prototype = {
     this.load.setPreloadSprite(this.asset);
     this.load.image('yeoman', 'assets/yeoman-logo.png');
     this.load.bitmapFont('minecraftia', 'assets/fonts/minecraftia.png', 'assets/fonts/minecraftia.xml');
+    this.load.script('HudManager', 'js/plugins/HUDManager.js');
 
 
   },
