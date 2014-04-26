@@ -78,49 +78,45 @@ Player.prototype.fire = function() {
 Player.prototype.createTexture = function() {
   this.bmd.clear();
 
-  
-  
-  // left circle
-  this.bmd.ctx.arc(this.size *0.33 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  // right circle
-  this.bmd.ctx.beginPath();
-  this.bmd.ctx.arc(this.size * 0.66 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  // top circle
-  this.bmd.ctx.beginPath();
-  this.bmd.ctx.arc(this.size / 2 , this.size *0.33, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  // bottom circle
-  this.bmd.ctx.beginPath();
-  this.bmd.ctx.arc(this.size / 2 , this.size *0.66, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  
-
-  
-
-  
-  
-
-
+  Player.drawBody(this.bmd.ctx, this.size, this.color, 1);
   this.bmd.render();
   this.bmd.refreshBuffer();
+};
+
+Player.drawBody = function(ctx, size, color, lineWidth) {
+  lineWidth = lineWidth || 1;
+
+  // left circle
+  ctx.arc(size *0.33 , size / 2, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // right circle
+  ctx.beginPath();
+  ctx.arc(size * 0.66 , size / 2, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // top circle
+  ctx.beginPath();
+  ctx.arc(size / 2 , size *0.33, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // bottom circle
+  ctx.beginPath();
+  ctx.arc(size / 2 , size *0.66, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
 };
 
 module.exports = Player;

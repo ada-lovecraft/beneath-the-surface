@@ -3,7 +3,9 @@ var Cell = require('./cell');
 
 var Friendly = function(game, x, y, size, color, maxHealth) {
   color = color || '#fc8383';
-  Cell.call(this, game, x, y, size, color, 3);
+  size = size || 8;
+  maxHealth = maxHealth || 3;
+  Cell.call(this, game, x, y, size, color, maxHealth);
   this.canBeDamaged = true;
   this.panicTween = null;
   this.ouchSound = this.game.add.audio('ouch');

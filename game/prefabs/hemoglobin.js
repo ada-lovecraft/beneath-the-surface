@@ -2,14 +2,15 @@
 var Primative = require('./primative');
 
 var Hemoglobin = function(game, x, y) {
-  Primative.call(this, game, x, y, 12, '#c820ff');
+  Primative.call(this, game, x, y, 16, '#c820ff');
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
 
-
+  this.killSound = this.game.add.audio('hemoglobinPickup');
   // initialize your prefab here
   
+  this.events.onKilled.add(this.onKilled, this);
 };
 
 Hemoglobin.prototype = Object.create(Phaser.Sprite.prototype);
@@ -19,6 +20,10 @@ Hemoglobin.prototype.update = function() {
   
   // write your prefab's specific update code here
   
+};
+
+Hemoglobin.prototype.onKilled = function() {
+  this.killSound.play();
 };
 
 Hemoglobin.prototype.createTexture = function() {

@@ -15,7 +15,87 @@ window.onload = function () {
 
   game.state.start('boot');
 };
-},{"./states/boot":13,"./states/gameover":14,"./states/menu":15,"./states/play":16,"./states/preload":17}],2:[function(require,module,exports){
+},{"./states/boot":16,"./states/gameover":17,"./states/menu":18,"./states/play":19,"./states/preload":20}],2:[function(require,module,exports){
+'use strict';
+var Introduction = require('../prefabs/introduction');
+var Intros = require('./intros');
+var IntroManager = function(game) {
+  this.game = game;
+  this.introQ = [];
+  this.storage = JSON.parse(localStorage.getItem('intros')) || {};
+};
+
+IntroManager.prototype.getNext = function() {
+  var q, id, intro;
+  if(!this.length) {
+    return null;
+  }
+  id = this.introQ.shift();
+  
+  if(!this.storage[id]) {
+    this.storage[id] = {};
+  }
+  this.storage[id].show = false;
+  localStorage.setItem('intros', JSON.stringify(this.storage));
+  intro = this.get(id);
+  return new Introduction(this.game, intro);
+};
+
+
+IntroManager.prototype.get = function(id) {
+  return Intros[id];
+};
+
+IntroManager.prototype.queue = function(id) {
+  if(!this.storage[id] || this.storage[id].show !== false) {
+    this.introQ.push(id);  
+  }
+  
+};
+
+Object.defineProperty(IntroManager.prototype, 'length', {
+  get: function() {
+    return this.introQ.length;
+  }
+});
+
+
+module.exports = IntroManager;
+},{"../prefabs/introduction":12,"./intros":3}],3:[function(require,module,exports){
+'use strict';
+
+var CommonCold = require('../prefabs/common-cold');
+var Player = require('../prefabs/player');
+var Oxygen = require('../prefabs/oxygen');
+
+exports.whiteBloodCell = {
+  id: 'whiteBloodCell',
+  name: 'The White Blood Cell',
+  description: 'The hero of our story',
+  mechanics: 'Fast, agile, and loaded with antivirals. Kill the bad guys, protect the innocents, and be awesome.\n\nClick to shoot. WASD to move',
+  color: 'white',
+  spriteClass: Player
+};
+
+exports.commonCold = {
+  id: 'commonCold',
+  name: 'The Common Cold',
+  description: 'The most annoying virus in the world',
+  mechanics: 'Slow, dumb, and weak, the common cold will wander around and just generally make you annoyed.\n\nOne Shot. One Kill.',
+  color: '#33d743',
+  spriteClass: CommonCold
+};
+
+exports.oxygen = {
+  id: 'oxygen',
+  name: 'Oxygen',
+  description: 'Your life\'s blood\'s life\'s blood',
+  mechanics: 'Randomly floats by in the blood stream and is also released when a blood cell dies.\n\nReplenishes a damaged red blood cell\'s health',
+  color: '#4e8cff',
+  spriteClass: Oxygen
+};
+
+},{"../prefabs/common-cold":7,"../prefabs/oxygen":13,"../prefabs/player":14}],4:[function(require,module,exports){
 'use strict';
 
 // Phaser Point Extensions
@@ -51,8 +131,50 @@ Utils.hexToColorString = function(value) {
     }
 };
 
+Utils.roundRect = function(ctx, x, y, width, height, radius, fill, stroke) {
+  if (typeof stroke == "undefined" ) {
+    stroke = true;
+  }
+  if (typeof radius === "undefined") {
+    radius = 5;
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  if (stroke) {
+    ctx.stroke();
+  }
+  if (fill) {
+    ctx.fill();
+  }        
+};
+
+Utils.polygon =function(ctx, x, y, radius, sides, startAngle, anticlockwise) {
+  if (sides < 3) return;
+  var a = (Math.PI * 2)/sides;
+  a = anticlockwise?-a:a;
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(startAngle);
+  ctx.moveTo(radius,0);
+  for (var i = 1; i < sides; i++) {
+    ctx.lineTo(radius*Math.cos(a*i),radius*Math.sin(a*i));
+  }
+  ctx.closePath();
+  ctx.restore();
+};
+
+
 module.exports = Utils;
-},{}],3:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 'use strict';
 var Utils = require('../plugins/utils');
 var Automata = function(game, x, y, options) {
@@ -708,7 +830,7 @@ Automata.debug.constructor = Automata.debug;
 
 module.exports = Automata;
 
-},{"../plugins/utils":2}],4:[function(require,module,exports){
+},{"../plugins/utils":4}],6:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var Automata = require('./automata');
@@ -718,19 +840,26 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   this.cellColor = color || 'white';
   this.maxHealth = maxHealth || 5;
   
-
+  
   var options = {
     wander: {
       enabled: true,
       strength: 0.5
+    }, 
+    game: {
+      wrapWorldBounds: false
     }
   };
+  
 
   Automata.call(this, game, x, y, options);
   Primative.call(this, game, x, y, size, this.cellColor);
 
   this.anchor.setTo(0.5, 0.5);
   this.game.physics.arcade.enableBody(this);
+
+  this.body.collideWorldBounds = true;
+  this.body.bounce.setTo(1,1);
 
   this.health = this.maxHealth;
 
@@ -808,7 +937,7 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
   },
   set: function(value) {
     this.setOptions(value);
-    if(this.options.game.wrapWorldBounds == false) {
+    if(this.options.game.wrapWorldBounds === false) {
       this.body.collideWorldBounds = true;
       this.body.bounce.setTo(1,1);
     }
@@ -817,17 +946,15 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
 
 module.exports = Cell;
 
-},{"./automata":3,"./primative":12}],5:[function(require,module,exports){
+},{"./automata":5,"./primative":15}],7:[function(require,module,exports){
 'use strict';
 var Enemy = require('./enemy');
+var Utils = require('../plugins/utils');
 var CommonCold = function(game, x, y) {
-  Enemy.call(this, game, x, y, 16, '#88b25b',1);
+  Enemy.call(this, game, x, y, 16, '#33d743',1);
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
-
-
-  // initialize your prefab here
   
 };
 
@@ -842,74 +969,65 @@ CommonCold.prototype.update = function() {
 
 CommonCold.prototype.createTexture = function() {
   this.bmd.clear();
-
-  //this.bmd.ctx.save();
-  //this.bmd.ctx.globalAlpha = 0.5;
-  this.bmd.ctx.beginPath();
-  // create circle background
-  this.bmd.ctx.moveTo(this.size / 2, 0);
-  this.bmd.ctx.lineTo(this.size, this.size * 0.3);
-  this.bmd.ctx.lineTo(this.size, this.size * 0.7);
-  this.bmd.ctx.lineTo(this.size / 2, this.size);
-  this.bmd.ctx.lineTo(0, this.size * 0.7);
-  this.bmd.ctx.lineTo(0, this.size * 0.3);
-  this.bmd.ctx.lineTo(this.size / 2, 0);
-  this.bmd.ctx.strokeStyle = this.color;
-  this.bmd.ctx.lineWidth = 1;
-  this.bmd.ctx.stroke();
-  this.bmd.ctx.closePath();
-
-  this.bmd.ctx.save();
-  this.bmd.ctx.globalAlpha = 0.5;
-  this.bmd.ctx.beginPath();
-  // create circle background
-  this.bmd.ctx.moveTo(this.size / 2, 0);
-  this.bmd.ctx.lineTo(this.size, this.size * 0.3);
-  this.bmd.ctx.lineTo(this.size, this.size * 0.7);
-  this.bmd.ctx.lineTo(this.size / 2, this.size);
-  this.bmd.ctx.lineTo(0, this.size * 0.7);
-  this.bmd.ctx.lineTo(0, this.size * 0.3);
-  this.bmd.ctx.lineTo(this.size / 2, 0);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.fill();
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.restore();
-  /*
-  this.bmd.ctx.lineTo(this.size, this.size * 0.75);
-  this.bmd.ctx.lineTo(this.size / 2, this.size);
-  this.bmd.ctx.lineTo(0, this.size * 0.75);
-  this.bmd.ctx.lineTo(0, this.size * 0.25);
-  this.bmd.ctx.lineTo(this.width/2, 0);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  */
-  
-  //create circle outline
-  /*
-  this.bmd.ctx.restore();
-  CommonCold.drawBody(this.bmd.ctx);
-  this.bmd.ctx.strokeStyle = this.color;
-  this.bmd.ctx.lineWidth = 1;
-  this.bmd.ctx.stroke();
-  */
+  CommonCold.drawBody(this.bmd.ctx, this.size, this.color);
   this.bmd.render();
   this.bmd.refreshBuffer();
 };
 
-CommonCold.drawBody = function(ctx) {
-  ctx.moveTo(this.width/2, 0);
-  ctx.lineTo(this.width, this.height * 0.25);
-  ctx.lineTo(this.width, this.height * 0.75);
-  ctx.lineTo(this.width/2, this.height);
-  ctx.lineTo(0, this.height * 0.75);
-  ctx.lineTo(0, this.height * 0.25);
-  ctx.lineTo(this.width/2, 0);
+CommonCold.drawBody = function(ctx, size, color, lineWidth) {
+  lineWidth = lineWidth || 1;
+  var lineColor = '#258c2f';
+  ctx.lineWidth = lineWidth;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = lineColor;
+  
+  ctx.beginPath();
+
+  Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fill();
+  ctx.restore();
+  ctx.beginPath();
+  Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
+  ctx.stroke();
+
+
+  /*ctx.beginPath();
+  // create shape background
+  ctx.moveTo(size / 2, 0);
+  ctx.lineTo(size, size * 0.3);
+  ctx.lineTo(size, size * 0.7);
+  ctx.lineTo(size / 2, size);
+  ctx.lineTo(0, size * 0.7);
+  ctx.lineTo(0, size * 0.3);
+  ctx.lineTo(size / 2, 0);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  // create shape outline 
+  ctx.moveTo(size / 2, 0);
+  ctx.lineTo(size, size * 0.3);
+  ctx.lineTo(size, size * 0.7);
+  ctx.lineTo(size / 2, size);
+  ctx.lineTo(0, size * 0.7);
+  ctx.lineTo(0, size * 0.3);
+  ctx.lineTo(size / 2, 0);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.closePath();
+  ctx.restore();
+  */
 };
 
 module.exports = CommonCold;
 
-},{"./enemy":7}],6:[function(require,module,exports){
+},{"../plugins/utils":4,"./enemy":9}],8:[function(require,module,exports){
 'use strict';
 
 var Primative = require('./primative');
@@ -943,7 +1061,7 @@ module.exports = CrossHair;
 
 
 
-},{"./primative":12}],7:[function(require,module,exports){
+},{"./primative":15}],9:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
@@ -969,13 +1087,15 @@ Enemy.prototype.onKilled = function() {
 
 module.exports = Enemy;
 
-},{"./cell":4}],8:[function(require,module,exports){
+},{"./cell":6}],10:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
 var Friendly = function(game, x, y, size, color, maxHealth) {
   color = color || '#fc8383';
-  Cell.call(this, game, x, y, size, color, 3);
+  size = size || 8;
+  maxHealth = maxHealth || 3;
+  Cell.call(this, game, x, y, size, color, maxHealth);
   this.canBeDamaged = true;
   this.panicTween = null;
   this.ouchSound = this.game.add.audio('ouch');
@@ -1065,19 +1185,20 @@ Friendly.prototype.onRevived = function() {
 
 module.exports = Friendly;
 
-},{"./cell":4}],9:[function(require,module,exports){
+},{"./cell":6}],11:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
 var Hemoglobin = function(game, x, y) {
-  Primative.call(this, game, x, y, 12, '#c820ff');
+  Primative.call(this, game, x, y, 16, '#c820ff');
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
 
-
+  this.killSound = this.game.add.audio('hemoglobinPickup');
   // initialize your prefab here
   
+  this.events.onKilled.add(this.onKilled, this);
 };
 
 Hemoglobin.prototype = Object.create(Phaser.Sprite.prototype);
@@ -1087,6 +1208,10 @@ Hemoglobin.prototype.update = function() {
   
   // write your prefab's specific update code here
   
+};
+
+Hemoglobin.prototype.onKilled = function() {
+  this.killSound.play();
 };
 
 Hemoglobin.prototype.createTexture = function() {
@@ -1115,16 +1240,130 @@ Hemoglobin.prototype.createTexture = function() {
 
 module.exports = Hemoglobin;
 
-},{"./primative":12}],10:[function(require,module,exports){
+},{"./primative":15}],12:[function(require,module,exports){
+'use strict';
+var Utils = require('../plugins/utils');
+var Introduction = function(game,  config) {
+  Phaser.Group.call(this, game);
+  this.backdropBMD = this.game.add.bitmapData(500, 300);
+  this.drawBackground();
+  
+  this.spriteBMD = this.game.add.bitmapData(128, 128);
+  
+
+  this.closeBMD = this.game.add.bitmapData(16,16);
+  this.drawClose();
+
+  this.graphics = this.game.add.graphics(0,0);
+  this.inTween = null;
+  this.outTween = null;
+  
+
+  var backdrop = this.game.add.sprite(this.game.width / 2, 100, this.backdropBMD);
+  backdrop.anchor.setTo(0.5, 0.5);
+  backdrop.alpha = 0.75;
+  
+  var introStyle = { fill: 'white', font: '24px Audiowide' };
+  var titleStyle = {fill: config.color, font: '24px Audiowide'};
+  var descriptionStyle = {fill: 'white', font: 'italic 16px Audiowide'};
+  var mechanicsStyle = {fill: 'white', font: '12px Audiowide', wordWrap: true, wordWrapWidth: 250};
+  var closeStyle = {fill: 'white', font: '12px Audiowide'};
+
+  var introText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  20, 'INTRODUCING:', introStyle);
+  
+  var titleText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  50, config.name, titleStyle);
+  titleText.fill = config.color;
+
+
+  
+
+  var descriptionText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  100, '"' + config.description + '" ', descriptionStyle);
+  var mechanicsText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  150, config.mechanics, mechanicsStyle);
+
+  this.sprite = this.game.add.sprite(backdrop.x + 150 , backdrop.y + 50, this.spriteBMD);
+  this.sprite.anchor.setTo(0.5, 0.5);
+
+  this.graphics.lineStyle(2, 0xCCCCCC);
+  this.graphics.moveTo(backdrop.x - backdrop.width / 2, backdrop.y - backdrop.height / 2 + 85);
+  this.graphics.lineTo(backdrop.x + backdrop.width / 2, backdrop.y - backdrop.height / 2 + 85);
+
+  var closeText = this.game.add.text(backdrop.x, backdrop.y + backdrop.height / 2 - 20, 'Spacebar to close', closeStyle);
+  closeText.anchor.setTo(0.5);
+
+  config.spriteClass.drawBody(this.spriteBMD.ctx, 128, config.color,1);
+
+  this.spriteBMD.render();
+  this.spriteBMD.refreshBuffer();
+
+  this.add(backdrop);
+  this.add(introText);
+  this.add(titleText);
+  this.add(descriptionText);
+  this.add(mechanicsText);
+  this.add(this.sprite);
+  this.add(this.graphics);
+  this.add(closeText);
+
+  this.x = 0;
+  this.y = this.game.height;
+
+  this.closeKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+  this.closeKey.onDown.addOnce(this.close, this);
+  this.inTween = this.game.add.tween(this).to({y: 100}, 500, Phaser.Easing.Back.Out, true);
+};
+
+Introduction.prototype = Object.create(Phaser.Group.prototype);
+Introduction.prototype.constructor = Introduction;
+
+Introduction.prototype.update = function() {
+  
+  this.sprite.rotation += 0.01;
+  
+};
+
+Introduction.prototype.close = function() {
+  this.outTween = this.game.add.tween(this).to({y: this.game.height}, 500, Phaser.Easing.Back.In, true);
+  this.outTween.onComplete.add(function() { this.destroy(); }, this);
+};
+
+Introduction.prototype.drawBackground = function() {
+  this.backdropBMD.ctx.fillStyle = '#333';
+  this.backdropBMD.ctx.strokeStyle = '#000';
+  this.backdropBMD.ctx.lineWidth = 4;
+  Utils.roundRect(this.backdropBMD.ctx, 2,2, this.backdropBMD.width - 4, this.backdropBMD.height - 4, 20, true, true);
+  
+  this.backdropBMD.render();
+  this.backdropBMD.refreshBuffer();
+};
+
+Introduction.prototype.drawClose = function() {
+  
+  this.closeBMD.ctx.strokeStyle = '#ccc';
+  this.closeBMD.ctx.lineWidth = 4;
+  this.closeBMD.ctx.moveTo(0,0);
+  this.closeBMD.ctx.lineTo(16,16);
+  this.closeBMD.ctx.moveTo(0, 16);
+  this.closeBMD.ctx.lineTo(16,0);
+  this.closeBMD.ctx.stroke();
+  this.closeBMD.render();
+  this.closeBMD.refreshBuffer();
+  
+};
+module.exports = Introduction;
+
+},{"../plugins/utils":4}],13:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
 var Oxygen = function(game, x, y) {
-  Primative.call(this, game, x, y, 12, '#4e8cff');
+  Primative.call(this, game, x, y, 16, '#4e8cff');
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
 
+  this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
+  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
+  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
 
   // initialize your prefab here
   
@@ -1136,36 +1375,44 @@ Oxygen.prototype.constructor = Oxygen;
 Oxygen.prototype.update = function() {
   
   // write your prefab's specific update code here
+  this.rotation += 0.01;
   
 };
 
 Oxygen.prototype.createTexture = function() {
   this.bmd.clear();
 
-  this.bmd.ctx.save();
-  this.bmd.ctx.globalAlpha = 0.5;
-  this.bmd.ctx.beginPath();
-  // create circle background
-  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
+  Oxygen.drawBody(this.bmd.ctx, this.size, this.color);
   
-  //create circle outline
-  this.bmd.ctx.restore();
-  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
-  this.bmd.ctx.strokeStyle = this.color;
-  this.bmd.ctx.lineWidth = 1;
-  this.bmd.ctx.stroke();
-
-
   this.bmd.render();
   this.bmd.refreshBuffer();
 };
 
+Oxygen.drawBody = function(ctx, size, color, lineWidth) {
+  lineWidth = lineWidth || 1;
+
+  ctx.beginPath();
+  //create circle outline
+  ctx.arc(size / 2 , size / 2, size/2 - size / 8, 0, 2 * Math.PI, false);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.closePath();
+
+  // create small circle on outside
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 8, size / 8, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.closePath();
+  
+};
+
+
+
 module.exports = Oxygen;
 
-},{"./primative":12}],11:[function(require,module,exports){
+},{"./primative":15}],14:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var CrossHair = require('./crosshair');
@@ -1246,54 +1493,50 @@ Player.prototype.fire = function() {
 Player.prototype.createTexture = function() {
   this.bmd.clear();
 
-  
-  
-  // left circle
-  this.bmd.ctx.arc(this.size *0.33 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  // right circle
-  this.bmd.ctx.beginPath();
-  this.bmd.ctx.arc(this.size * 0.66 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  // top circle
-  this.bmd.ctx.beginPath();
-  this.bmd.ctx.arc(this.size / 2 , this.size *0.33, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  // bottom circle
-  this.bmd.ctx.beginPath();
-  this.bmd.ctx.arc(this.size / 2 , this.size *0.66, this.size / 4, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  this.bmd.ctx.stroke();
-
-  
-
-  
-
-  
-  
-
-
+  Player.drawBody(this.bmd.ctx, this.size, this.color, 1);
   this.bmd.render();
   this.bmd.refreshBuffer();
 };
 
+Player.drawBody = function(ctx, size, color, lineWidth) {
+  lineWidth = lineWidth || 1;
+
+  // left circle
+  ctx.arc(size *0.33 , size / 2, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // right circle
+  ctx.beginPath();
+  ctx.arc(size * 0.66 , size / 2, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // top circle
+  ctx.beginPath();
+  ctx.arc(size / 2 , size *0.33, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // bottom circle
+  ctx.beginPath();
+  ctx.arc(size / 2 , size *0.66, size / 4, 0, 2 * Math.PI, false);
+  ctx.fillStyle = color;
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+};
+
 module.exports = Player;
 
-},{"./crosshair":6,"./primative":12}],12:[function(require,module,exports){
+},{"./crosshair":8,"./primative":15}],15:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   this.size = size;
@@ -1327,7 +1570,7 @@ Primative.prototype.createTexture = function() {
 
 module.exports = Primative;
 
-},{}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 
 'use strict';
 
@@ -1347,7 +1590,7 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],14:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 
 'use strict';
 function GameOver() {}
@@ -1373,7 +1616,7 @@ GameOver.prototype = {
 };
 module.exports = GameOver;
 
-},{}],15:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 
 'use strict';
 function Menu() {}
@@ -1406,7 +1649,7 @@ Menu.prototype = {
 
 module.exports = Menu;
 
-},{}],16:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 
   'use strict';
   var Player = require('../prefabs/player');
@@ -1414,12 +1657,17 @@ module.exports = Menu;
   var Friendly = require('../prefabs/friendly');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
+  var IntroManager = require('../plugins/IntroManager');
+
   function Play() {}
   Play.prototype = {
     create: function() {
+      this.introManager = new IntroManager(this.game);
+
       this.score = 0;
       this.hemoCount = 0;
       this.hemoMax = 10;
+
 
       this.gamehud = Phaser.Plugin.HUDManager.create(this.game, this, 'gamehud');
       
@@ -1429,21 +1677,18 @@ module.exports = Menu;
       this.friendlyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'friendlyhud');
 
       var style = { font: '18px Audiowide', fill: '#ffffff', align: 'center'};
+
       this.scoreHUD = this.gamehud.addText(10, 10, 'Score: ', style, 'score', this);
       this.game.add.existing(this.scoreHUD.text);
 
       this.hemoTracker = this.gamehud.addBar(this.game.width - 160, 20, 300, 20, this.hemoMax, 'hemoCount', this, '#c820ff','#761397' );
       this.hemoTracker.bar.anchor.setTo(0.5, 0.5);
-      this.hemoTracker.bar.alpha = 0.5
+      this.hemoTracker.bar.alpha = 0.5;
       this.game.add.existing(this.hemoTracker.bar);
 
       var hemoLabel = this.game.add.text(this.hemoTracker.bar.x, this.hemoTracker.bar.y, 'HEMOGLOBINS', {fill:'#761397', font:'bold 14px Audiowide'});
       hemoLabel.anchor.setTo(0.5, 0.5);
       this.game.physics.startSystem(Phaser.Physics.ARCADE);
-
-
-
-      
 
       this.oxygen = this.game.add.group();
       
@@ -1457,6 +1702,7 @@ module.exports = Menu;
       this.game.add.existing(this.player);
       this.friendlies.add(this.player);
 
+      this.intros = this.game.add.group();
 
 
       var i;
@@ -1505,29 +1751,26 @@ module.exports = Menu;
         }
       });
 
-      this.enemies.setAll('automataOptions', {
-        pursue: {
-          enabled: true,
-          target: this.friendlies,
-          viewDistance: 300
-        },
-        game: {
-          debug: false,
-          wrapWorldBounds: false
-        },
-        forces: {
-          maxVelocity: 200
-        }
-      });
+      this.introManager.queue('whiteBloodCell');
+      this.introManager.queue('commonCold');
+      this.introManager.queue('oxygen');
+
+      this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
     },
     update: function() {
+      if(this.introManager.length && !this.intros.getFirstExists(true)) {
+        var intro = this.introManager.getNext();
+        if(intro) {
+          this.intros.add(intro);  
+        }
+      }
       this.game.physics.arcade.overlap(this.player.bullets, this.enemies, this.enemyHit, null, this);
       this.game.physics.arcade.overlap(this.player, this.hemoglobins, this.hemoglobinHit, null, this);
     },
     enemyHit: function(bullet, enemy) {
       bullet.kill();
       enemy.health--;
-      if(enemy.health == 0) {
+      if(enemy.health === 0) {
         enemy.kill();
         this.score++;
         var hemo = this.hemoglobins.getFirstExists(false);
@@ -1542,12 +1785,23 @@ module.exports = Menu;
     hemoglobinHit: function(player, hemo) {
       hemo.kill();
       this.hemoCount++;
+      if(this.hemoCount === this.hemoMax) {
+        this.hemoCount = 0;
+        var bloodCell = this.friendlies.getFirstExists(false);
+        if(!bloodCell) {
+          bloodCell = new Friendly(this.game, 0,0);
+          this.friendlies.add(bloodCell);
+        }
+        var spawnLocation = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
+        bloodCell.reset(spawnLocation.x, spawnLocation.y, bloodCell.maxHealth);
+        bloodCell.revive();
+        
+      }
     }
-    
   };
   
   module.exports = Play;
-},{"../prefabs/common-cold":5,"../prefabs/friendly":8,"../prefabs/hemoglobin":9,"../prefabs/oxygen":10,"../prefabs/player":11}],17:[function(require,module,exports){
+},{"../plugins/IntroManager":2,"../prefabs/common-cold":7,"../prefabs/friendly":10,"../prefabs/hemoglobin":11,"../prefabs/oxygen":13,"../prefabs/player":14}],20:[function(require,module,exports){
 'use strict';
 function Preload() {
   this.asset = null;
@@ -1557,6 +1811,8 @@ function Preload() {
 
 Preload.prototype = {
   preload: function() {
+
+
     this.asset = this.add.sprite(this.game.width/2,this.game.height/2, 'preloader');
     this.asset.anchor.setTo(0.5, 0.5);
 
@@ -1590,10 +1846,14 @@ Preload.prototype = {
       families: ['Audiowide::latin']
     }
 
+
+
   };
 
   this.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
 
+  this.game.introductionStorage = localStorage.getItem('introductions');
+  
   },
   create: function() {
     this.asset.cropEnabled = false;

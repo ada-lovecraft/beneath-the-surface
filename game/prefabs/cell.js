@@ -7,19 +7,26 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   this.cellColor = color || 'white';
   this.maxHealth = maxHealth || 5;
   
-
+  
   var options = {
     wander: {
       enabled: true,
       strength: 0.5
+    }, 
+    game: {
+      wrapWorldBounds: false
     }
   };
+  
 
   Automata.call(this, game, x, y, options);
   Primative.call(this, game, x, y, size, this.cellColor);
 
   this.anchor.setTo(0.5, 0.5);
   this.game.physics.arcade.enableBody(this);
+
+  this.body.collideWorldBounds = true;
+  this.body.bounce.setTo(1,1);
 
   this.health = this.maxHealth;
 
@@ -97,7 +104,7 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
   },
   set: function(value) {
     this.setOptions(value);
-    if(this.options.game.wrapWorldBounds == false) {
+    if(this.options.game.wrapWorldBounds === false) {
       this.body.collideWorldBounds = true;
       this.body.bounce.setTo(1,1);
     }
