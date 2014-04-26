@@ -21,7 +21,7 @@ Enemy.prototype = Object.create(_.merge(Primative.prototype, Automata.prototype,
 Enemy.prototype.constructor = Enemy;
 
 Enemy.prototype.update = function() {
-  
+  Automata.prototype.update.call(this);
   // write your prefab's specific update code here
   
 };

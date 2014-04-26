@@ -2,8 +2,10 @@
 var Utils = require('../plugins/utils');
 var Automata = function(game, x, y, options) {
   Phaser.Sprite.call(this, game, x,y);
+  this.options = _.merge({}, Automata.defaultOptions, _.defaults);
+  this.options = _.merge(this.options, options);
 
-  this.options = _.merge(Automata.defaultOptions, options, _.defaults);
+  this.radius = Math.sqrt(this.height * this.height + this.width + this.width) / 2;
 
   this.graphics = this.game.add.graphics(0,0);
 
@@ -18,6 +20,7 @@ var Automata = function(game, x, y, options) {
     return a.id - b.id;
   });
 
+  this.debug = new Automata.debug(this.game.add.graphics(0,0));
   // initialize your prefab here
   
 };
@@ -28,13 +31,78 @@ Automata.prototype.constructor = Automata;
 Automata.prototype.update = function() {
   
   // write your prefab's specific update code here
+  if(this.options.game.debug) {
+    this.debug.clear();
+  }
+
+  _.every(this.priorityList, function(priority) {
+    priority.continue = true;
+    _.each(priority, function(behavior) {
+      var accel = new Phaser.Point();
+      if(behavior.enabled) {
+        accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
+        if(accel.getMagnitude() > 0) {
+          this.applyForce(accel);
+          priority.continue = false;
+        }
+      }
+    }, this);
+    return priority.continue;
+  }, this);
+
+  if(this.options.game.wrapWorldBounds) {
+    this.checkBounds();
+  }
+
+  if(this.options.game.rotateToVelocity) {
+    this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
+  }
+
+  this.body.velocity.limit(this.options.forces.maxVelocity);
+  this.body.acceleration.setTo(0,0);
+};
+
+Automata.prototype.applyForce = function(force) {
+  var velocity;
+  force.limit(this.options.forces.maxForce);
+  velocity = Phaser.Point.add(this.body.velocity, force);
+  this.body.velocity.add(velocity.x, velocity.y);
+};
+
+
+Automata.prototype.wander = function() {
+  this.options.wander.theta += this.game.rnd.realInRange(-this.options.wander.change, this.options.wander.change);
+
+  var circleLocation, steer, circleOffset;
+
+  circleLocation = this.body.velocity.clone();
+  circleLocation.normalize();
+  circleLocation.scaleBy(this.options.wander.distance * this.radius);
+
+  circleOffset = new Phaser.Point(this.options.wander.radius * this.radius * Math.cos(this.options.wander.theta),
+                                  this.options.wander.radius * this.radius * Math.sin(this.options.wander.theta));
+
+  steer = Phaser.Point.add(circleLocation, circleOffset);
+
+  return steer.scaleBy(this.options.wander.strength);
   
 };
 
-Automata.prototype.test = function() {
-  console.log('test');
-};
 
+Automata.prototype.checkBounds = function() {
+  if(this.position.x < -this.radius ){
+    this.position.x = this.game.width + this.radius;
+  }
+  if(this.position.y < -this.radius ){
+    this.position.y = this.game.height + this.radius;
+  }
+  if(this.position.x > this.game.width + this.radius ){
+    this.position.x = -this.radius;
+  }
+  if(this.position.y > this.game.height + this.radius ){
+    this.position.y = -this.radius;
+  }
+};
 
 Automata.defaultOptions = Object.freeze({
   game: {
