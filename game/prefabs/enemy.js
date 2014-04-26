@@ -1,29 +1,16 @@
 'use strict';
-var Primative = require('./primative');
-var Automata = require('./automata');
+var Cell = require('./cell');
+
 var Enemy = function(game, x, y, size, color) {
   color = color || '#88b25b';
-
-  var options = {
-    wander: {
-      enabled: true
-    }
-  };
-
-  Automata.call(this,game,x,y, options);
-  Primative.call(this, game, x, y, size, color);
-  this.anchor.setTo(0.5, 0.5);
-  this.game.physics.arcade.enableBody(this);
-  
+  Cell.call(this, game, x, y, size, color);
 };
 
-Enemy.prototype = Object.create(_.merge(Primative.prototype, Automata.prototype, _.defaults));
+Enemy.prototype = Object.create(Cell.prototype);
 Enemy.prototype.constructor = Enemy;
 
 Enemy.prototype.update = function() {
-  Automata.prototype.update.call(this);
-  // write your prefab's specific update code here
-  
+  Cell.prototype.update.call(this);
 };
 
 module.exports = Enemy;

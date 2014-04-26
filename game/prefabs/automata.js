@@ -3,22 +3,14 @@ var Utils = require('../plugins/utils');
 var Automata = function(game, x, y, options) {
   Phaser.Sprite.call(this, game, x,y);
   this.options = _.merge({}, Automata.defaultOptions, _.defaults);
-  this.options = _.merge(this.options, options);
+  this.setOptions(options);
 
   this.radius = Math.sqrt(this.height * this.height + this.width + this.width) / 2;
 
   this.graphics = this.game.add.graphics(0,0);
 
-  this.priorityList = _.chain(this.options)
-  .groupBy('priority')
-  .map(function(element, key, obj) {
-    obj[key].id = parseInt(key);
-    return obj[key];
-  }).value();
 
-  this.priorityList.sort(function(a,b) {
-    return a.id - b.id;
-  });
+  
 
   this.debug = new Automata.debug(this.game.add.graphics(0,0));
   // initialize your prefab here
@@ -91,7 +83,7 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
         tpos = target.position;
       }
 
-      pos = this.postion;
+      pos = this.position;
 
       desired = Phaser.Point.subtract(tpos, pos);
       distance = desired.getMagnitude();
@@ -180,6 +172,21 @@ Automata.prototype.checkBounds = function() {
   }
 };
 
+Automata.prototype.setOptions = function(options) {
+  this._options = _.merge(this.options, options);
+  this.priorityList = _.chain(this.options)
+  .groupBy('priority')
+  .map(function(element, key, obj) {
+    obj[key].id = parseInt(key);
+    return obj[key];
+  }).value();
+
+  this.priorityList.sort(function(a,b) {
+    return a.id - b.id;
+  });
+};
+
+
 Automata.defaultOptions = Object.freeze({
   game: {
     wrapWorldBounds: true,
@@ -262,6 +269,8 @@ Automata.defaultOptions = Object.freeze({
   }
 });
 
+
+
 Automata.debug = function(graphics) {
   this.graphics = graphics;
 
@@ -300,5 +309,7 @@ Automata.debug.prototype = Object.create({
     this.distanceLabel.alpha = alpha;
   }
 });
+
+
 
 module.exports = Automata;
