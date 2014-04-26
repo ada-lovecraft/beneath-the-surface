@@ -1,4 +1,5 @@
 node_modules
 bower_components/
 node_modules/
+dist/beneath-the-surface.zip
 *.log
