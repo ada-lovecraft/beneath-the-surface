@@ -72,6 +72,7 @@
         this.oxygen.add(oxygen);
       }
 
+      this.oxygen.callAll('onRevived');
         
 
       this.friendlies.setAll('automataOptions', {
@@ -102,6 +103,7 @@
       this.introManager.queue('whiteBloodCell');
       this.introManager.queue('commonCold');
       this.introManager.queue('oxygen');
+      this.introManager.queue('hemo');
 
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
     },

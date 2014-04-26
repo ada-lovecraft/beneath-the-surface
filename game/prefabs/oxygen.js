@@ -7,11 +7,11 @@ var Oxygen = function(game, x, y) {
 
   this.game.physics.arcade.enableBody(this);
 
-  this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
-  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
-  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
+  
 
   // initialize your prefab here
+  
+  this.events.onRevived.add(this.onRevived, this);
   
 };
 
@@ -23,6 +23,12 @@ Oxygen.prototype.update = function() {
   // write your prefab's specific update code here
   this.rotation += 0.01;
   
+};
+
+Oxygen.prototype.onRevived = function() {
+  this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
+  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
+  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
 };
 
 Oxygen.prototype.createTexture = function() {

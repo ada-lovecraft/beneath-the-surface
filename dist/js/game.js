@@ -67,6 +67,7 @@ module.exports = IntroManager;
 var CommonCold = require('../prefabs/common-cold');
 var Player = require('../prefabs/player');
 var Oxygen = require('../prefabs/oxygen');
+var Hemoglobin = require('../prefabs/hemoglobin');
 
 exports.whiteBloodCell = {
   id: 'whiteBloodCell',
@@ -94,8 +95,15 @@ exports.oxygen = {
   color: '#4e8cff',
   spriteClass: Oxygen
 };
-
-},{"../prefabs/common-cold":7,"../prefabs/oxygen":13,"../prefabs/player":14}],4:[function(require,module,exports){
+exports.hemo = {
+  id: 'hemo',
+  name: 'Hemoglobin',
+  description: 'Mmm... Protein',
+  mechanics: 'Released when you kill an attacking cell and will float away if you don\'t catch it\n\nCollect these to spawn more red blood cells.',
+  color: '#c820ff',
+  spriteClass: Hemoglobin
+};
+},{"../prefabs/common-cold":7,"../prefabs/hemoglobin":11,"../prefabs/oxygen":13,"../prefabs/player":14}],4:[function(require,module,exports){
 'use strict';
 
 // Phaser Point Extensions
@@ -991,38 +999,6 @@ CommonCold.drawBody = function(ctx, size, color, lineWidth) {
   ctx.beginPath();
   Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
   ctx.stroke();
-
-
-  /*ctx.beginPath();
-  // create shape background
-  ctx.moveTo(size / 2, 0);
-  ctx.lineTo(size, size * 0.3);
-  ctx.lineTo(size, size * 0.7);
-  ctx.lineTo(size / 2, size);
-  ctx.lineTo(0, size * 0.7);
-  ctx.lineTo(0, size * 0.3);
-  ctx.lineTo(size / 2, 0);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lineWidth;
-  ctx.stroke();
-  ctx.closePath();
-
-  ctx.save();
-  ctx.globalAlpha = 0.5;
-  ctx.beginPath();
-  // create shape outline 
-  ctx.moveTo(size / 2, 0);
-  ctx.lineTo(size, size * 0.3);
-  ctx.lineTo(size, size * 0.7);
-  ctx.lineTo(size / 2, size);
-  ctx.lineTo(0, size * 0.7);
-  ctx.lineTo(0, size * 0.3);
-  ctx.lineTo(size / 2, 0);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.closePath();
-  ctx.restore();
-  */
 };
 
 module.exports = CommonCold;
@@ -1199,15 +1175,23 @@ var Hemoglobin = function(game, x, y) {
   // initialize your prefab here
   
   this.events.onKilled.add(this.onKilled, this);
+  this.events.onRevived.add(this.onRevived, this);
+
 };
 
 Hemoglobin.prototype = Object.create(Phaser.Sprite.prototype);
 Hemoglobin.prototype.constructor = Hemoglobin;
 
 Hemoglobin.prototype.update = function() {
-  
+  this.rotation += 0.1;
   // write your prefab's specific update code here
   
+};
+
+Hemoglobin.prototype.onRevived = function() {
+  this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
+  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
+  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
 };
 
 Hemoglobin.prototype.onKilled = function() {
@@ -1216,26 +1200,32 @@ Hemoglobin.prototype.onKilled = function() {
 
 Hemoglobin.prototype.createTexture = function() {
   this.bmd.clear();
-
-  this.bmd.ctx.save();
-  this.bmd.ctx.globalAlpha = 0.5;
-  this.bmd.ctx.beginPath();
-  // create circle background
-  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  
-  //create circle outline
-  this.bmd.ctx.restore();
-  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
-  this.bmd.ctx.strokeStyle = this.color;
-  this.bmd.ctx.lineWidth = 1;
-  this.bmd.ctx.stroke();
-
-
+  Hemoglobin.drawBody(this.bmd.ctx, this.size, this.color);
   this.bmd.render();
   this.bmd.refreshBuffer();
+};
+
+Hemoglobin.drawBody = function(ctx, size, color, lineWidth) {
+  lineWidth = lineWidth || 1;
+  // draw dumbell line
+  ctx.strokeStyle = '#761397';
+  ctx.fillStyle = color;
+  ctx.lineWidth = lineWidth;
+  
+  
+  ctx.beginPath();
+  ctx.arc(size/2, size * 0.3, size/4, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+  ctx.closePath();
+  
+  ctx.beginPath();
+  ctx.arc(size/2, size * 0.7, size/4, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+  ctx.closePath();
+  
+  
 };
 
 module.exports = Hemoglobin;
@@ -1361,11 +1351,11 @@ var Oxygen = function(game, x, y) {
 
   this.game.physics.arcade.enableBody(this);
 
-  this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
-  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
-  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
+  
 
   // initialize your prefab here
+  
+  this.events.onRevived.add(this.onRevived, this);
   
 };
 
@@ -1377,6 +1367,12 @@ Oxygen.prototype.update = function() {
   // write your prefab's specific update code here
   this.rotation += 0.01;
   
+};
+
+Oxygen.prototype.onRevived = function() {
+  this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
+  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
+  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
 };
 
 Oxygen.prototype.createTexture = function() {
@@ -1724,6 +1720,7 @@ module.exports = Menu;
         this.oxygen.add(oxygen);
       }
 
+      this.oxygen.callAll('onRevived');
         
 
       this.friendlies.setAll('automataOptions', {
@@ -1754,6 +1751,7 @@ module.exports = Menu;
       this.introManager.queue('whiteBloodCell');
       this.introManager.queue('commonCold');
       this.introManager.queue('oxygen');
+      this.introManager.queue('hemo');
 
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
     },

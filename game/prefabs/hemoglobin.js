@@ -11,15 +11,23 @@ var Hemoglobin = function(game, x, y) {
   // initialize your prefab here
   
   this.events.onKilled.add(this.onKilled, this);
+  this.events.onRevived.add(this.onRevived, this);
+
 };
 
 Hemoglobin.prototype = Object.create(Phaser.Sprite.prototype);
 Hemoglobin.prototype.constructor = Hemoglobin;
 
 Hemoglobin.prototype.update = function() {
-  
+  this.rotation += 0.1;
   // write your prefab's specific update code here
   
+};
+
+Hemoglobin.prototype.onRevived = function() {
+  this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
+  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
+  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
 };
 
 Hemoglobin.prototype.onKilled = function() {
@@ -28,26 +36,32 @@ Hemoglobin.prototype.onKilled = function() {
 
 Hemoglobin.prototype.createTexture = function() {
   this.bmd.clear();
-
-  this.bmd.ctx.save();
-  this.bmd.ctx.globalAlpha = 0.5;
-  this.bmd.ctx.beginPath();
-  // create circle background
-  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
-  this.bmd.ctx.fillStyle = this.color;
-  this.bmd.ctx.closePath();
-  this.bmd.ctx.fill();
-  
-  //create circle outline
-  this.bmd.ctx.restore();
-  this.bmd.ctx.arc(this.size / 2 , this.size / 2, this.size / 2 - 2, 0, 2 * Math.PI, false);
-  this.bmd.ctx.strokeStyle = this.color;
-  this.bmd.ctx.lineWidth = 1;
-  this.bmd.ctx.stroke();
-
-
+  Hemoglobin.drawBody(this.bmd.ctx, this.size, this.color);
   this.bmd.render();
   this.bmd.refreshBuffer();
+};
+
+Hemoglobin.drawBody = function(ctx, size, color, lineWidth) {
+  lineWidth = lineWidth || 1;
+  // draw dumbell line
+  ctx.strokeStyle = '#761397';
+  ctx.fillStyle = color;
+  ctx.lineWidth = lineWidth;
+  
+  
+  ctx.beginPath();
+  ctx.arc(size/2, size * 0.3, size/4, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+  ctx.closePath();
+  
+  ctx.beginPath();
+  ctx.arc(size/2, size * 0.7, size/4, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+  ctx.closePath();
+  
+  
 };
 
 module.exports = Hemoglobin;
