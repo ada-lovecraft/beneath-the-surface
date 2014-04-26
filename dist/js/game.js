@@ -125,6 +125,82 @@ Automata.prototype.applyForce = function(force) {
 };
 
 
+Automata.prototype.seek = function(target, viewDistance, isSeeking) {
+  isSeeking = typeof isSeeking === 'undefined' ? true : isSeeking;
+
+  var steer = new Phaser.Point();
+
+  var tpos, pos, desired, distance;
+
+  viewDistance = viewDistance || this.options.seek.viewDistance;
+
+  
+    if(target instanceof Phaser.Group) {
+      target = this.getClosestInRange(target, viewDistance);
+    }
+
+    if(!!target) {
+      if (target instanceof Phaser.Point) {
+        tpos = target;
+      } else {
+        tpos = target.position;
+      }
+
+      pos = this.postion;
+
+      desired = Phaser.Point.subtract(tpos, pos);
+      distance = desired.getMagnitude();
+
+      if(distance > 0 && distance < viewDistance) {
+        desired.normalize();
+        if(isSeeking && this.options.seek.slowArrival && distance < this.options.seek.slowingRadius) {
+          desired.scaleBy(this.options.forces.maxVelocity * (distance / this.options.seek.slowingRadius));
+        } else {
+          desired.scaleBy(this.options.forces.maxVelocity);
+        }
+
+        steer = Phaser.Point.subtract(desired, this.body.velocity);
+      }
+    }
+  return steer;
+};
+
+
+Automata.prototype.getAllInRange = function(targets, viewDistance) {
+  var inRange = [], difference;
+
+  targets.forEach(function(target) {
+    difference = Phaser.Point.subtract(target.position, this.position);
+    if(difference.getMagnitude() < viewDistance) {
+      inRange.push(target);
+    }
+  }, this);
+
+  return inRange;
+};
+
+Automata.prototype.getClosestInRange = function(targetGroup, viewDistance) {
+  var closestTarget = null;
+  var closestDistance = viewDistance;
+
+  if(!targetGroup) {
+    return null;
+  }
+
+  targetGroup.forEachExists(function(target) {
+    var d;
+    d = this.position.distance(target.position);
+
+    if(d < closestDistance) {
+      closestDistance = d;
+      closestTarget = target;
+    }
+  }, this);
+
+  return closestTarget;
+};
+
+
 Automata.prototype.wander = function() {
   this.options.wander.theta += this.game.rnd.realInRange(-this.options.wander.change, this.options.wander.change);
 
