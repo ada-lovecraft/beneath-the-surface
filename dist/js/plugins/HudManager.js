@@ -148,7 +148,6 @@ Phaser.Plugin.HUDManager.prototype.addBar = function(x, y, width, height, max, w
     return context[watched];
   }, function(newVal) {
     var percent = newVal / max;
-    if((percent <= 1 && percent >= 0)) {
       bmd.clear();
       bmd.ctx.beginPath();
       bmd.ctx.moveTo(0,0);
@@ -156,14 +155,17 @@ Phaser.Plugin.HUDManager.prototype.addBar = function(x, y, width, height, max, w
       bmd.ctx.closePath();
       bmd.ctx.fillStyle = backgroundColor;
       bmd.ctx.fill();
+      bmd.ctx.closePath();
+    if((percent <= 1 && percent >= 0)) {
       bmd.ctx.beginPath();
       bmd.ctx.rect(0,0,width*percent, height);
       bmd.ctx.fillStyle = colorFunction(percent);
       bmd.ctx.fill();
       bmd.ctx.closePath();
       bmd.render();
-      bmd.refreshBuffer();
-    } 
+      
+    }
+    bmd.refreshBuffer(); 
   });
 
   return {bar: bar,  deregister: dereg};

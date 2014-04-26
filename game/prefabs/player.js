@@ -80,14 +80,14 @@ Player.prototype.createTexture = function() {
 
   
   
-  // create circle background
+  // left circle
   this.bmd.ctx.arc(this.size *0.33 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
   this.bmd.ctx.closePath();
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
-  
-  
+
+  // right circle
   this.bmd.ctx.beginPath();
   this.bmd.ctx.arc(this.size * 0.66 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
@@ -95,6 +95,7 @@ Player.prototype.createTexture = function() {
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
 
+  // top circle
   this.bmd.ctx.beginPath();
   this.bmd.ctx.arc(this.size / 2 , this.size *0.33, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
@@ -102,12 +103,19 @@ Player.prototype.createTexture = function() {
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
 
+  // bottom circle
   this.bmd.ctx.beginPath();
   this.bmd.ctx.arc(this.size / 2 , this.size *0.66, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
   this.bmd.ctx.closePath();
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
+
+  
+
+  
+
+  
   
 
 

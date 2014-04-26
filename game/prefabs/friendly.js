@@ -10,6 +10,8 @@ var Friendly = function(game, x, y, size, color, maxHealth) {
   this.oxygenSound = this.game.add.audio('oxygenPickup');
   this.deathSound = this.game.add.audio('cellDeath');
 
+  this.events.onRevived.add(this.onRevived, this);
+
 };
 
 Friendly.prototype = Object.create(Cell.prototype);
@@ -83,6 +85,10 @@ Friendly.prototype.takeDamage = function() {
       };
     }, this);
   }
+};
+
+Friendly.prototype.onRevived = function() {
+
 };
 
 module.exports = Friendly;

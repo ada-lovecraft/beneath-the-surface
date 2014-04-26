@@ -982,6 +982,8 @@ var Friendly = function(game, x, y, size, color, maxHealth) {
   this.oxygenSound = this.game.add.audio('oxygenPickup');
   this.deathSound = this.game.add.audio('cellDeath');
 
+  this.events.onRevived.add(this.onRevived, this);
+
 };
 
 Friendly.prototype = Object.create(Cell.prototype);
@@ -1055,6 +1057,10 @@ Friendly.prototype.takeDamage = function() {
       };
     }, this);
   }
+};
+
+Friendly.prototype.onRevived = function() {
+
 };
 
 module.exports = Friendly;
@@ -1242,14 +1248,14 @@ Player.prototype.createTexture = function() {
 
   
   
-  // create circle background
+  // left circle
   this.bmd.ctx.arc(this.size *0.33 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
   this.bmd.ctx.closePath();
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
-  
-  
+
+  // right circle
   this.bmd.ctx.beginPath();
   this.bmd.ctx.arc(this.size * 0.66 , this.size / 2, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
@@ -1257,6 +1263,7 @@ Player.prototype.createTexture = function() {
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
 
+  // top circle
   this.bmd.ctx.beginPath();
   this.bmd.ctx.arc(this.size / 2 , this.size *0.33, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
@@ -1264,12 +1271,19 @@ Player.prototype.createTexture = function() {
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
 
+  // bottom circle
   this.bmd.ctx.beginPath();
   this.bmd.ctx.arc(this.size / 2 , this.size *0.66, this.size / 4, 0, 2 * Math.PI, false);
   this.bmd.ctx.fillStyle = this.color;
   this.bmd.ctx.closePath();
   this.bmd.ctx.fill();
   this.bmd.ctx.stroke();
+
+  
+
+  
+
+  
   
 
 
@@ -1404,19 +1418,30 @@ module.exports = Menu;
   Play.prototype = {
     create: function() {
       this.score = 0;
+      this.hemoCount = 0;
+      this.hemoMax = 10;
 
       this.gamehud = Phaser.Plugin.HUDManager.create(this.game, this, 'gamehud');
+      
       
       this.enemyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'cellhud');
       
       this.friendlyhud = Phaser.Plugin.HUDManager.create(this.game, this, 'friendlyhud');
 
-      var style = { font: '18px Arial', fill: '#ffffff', align: 'center'};
+      var style = { font: '18px Audiowide', fill: '#ffffff', align: 'center'};
       this.scoreHUD = this.gamehud.addText(10, 10, 'Score: ', style, 'score', this);
-      
       this.game.add.existing(this.scoreHUD.text);
-      
+
+      this.hemoTracker = this.gamehud.addBar(this.game.width - 160, 20, 300, 20, this.hemoMax, 'hemoCount', this, '#c820ff','#761397' );
+      this.hemoTracker.bar.anchor.setTo(0.5, 0.5);
+      this.hemoTracker.bar.alpha = 0.5
+      this.game.add.existing(this.hemoTracker.bar);
+
+      var hemoLabel = this.game.add.text(this.hemoTracker.bar.x, this.hemoTracker.bar.y, 'HEMOGLOBINS', {fill:'#761397', font:'bold 14px Audiowide'});
+      hemoLabel.anchor.setTo(0.5, 0.5);
       this.game.physics.startSystem(Phaser.Physics.ARCADE);
+
+
 
       
 
@@ -1431,6 +1456,8 @@ module.exports = Menu;
       this.player = new Player(this.game, this.game.world.centerX, this.game.world.centerY, 16, 'white');
       this.game.add.existing(this.player);
       this.friendlies.add(this.player);
+
+
 
       var i;
       for(i =0; i < 10; i++) {
@@ -1451,10 +1478,7 @@ module.exports = Menu;
         this.oxygen.add(oxygen);
       }
 
-      for(i = 0; i < 10; i++) {
-        var hemo = new Hemoglobin(this.game, this.game.world.randomX, this.game.world.randomY);
-        this.hemoglobins.add(hemo);
-      }
+        
 
       this.friendlies.setAll('automataOptions', {
         seek: {
@@ -1498,6 +1522,7 @@ module.exports = Menu;
     },
     update: function() {
       this.game.physics.arcade.overlap(this.player.bullets, this.enemies, this.enemyHit, null, this);
+      this.game.physics.arcade.overlap(this.player, this.hemoglobins, this.hemoglobinHit, null, this);
     },
     enemyHit: function(bullet, enemy) {
       bullet.kill();
@@ -1505,7 +1530,18 @@ module.exports = Menu;
       if(enemy.health == 0) {
         enemy.kill();
         this.score++;
+        var hemo = this.hemoglobins.getFirstExists(false);
+        if(!hemo) {
+          hemo = new Hemoglobin(this.game, 0,0);
+          this.hemoglobins.add(hemo);
+        }
+        hemo.reset(enemy.x, enemy.y);
+        hemo.revive();
       }
+    },
+    hemoglobinHit: function(player, hemo) {
+      hemo.kill();
+      this.hemoCount++;
     }
     
   };
@@ -1516,6 +1552,7 @@ module.exports = Menu;
 function Preload() {
   this.asset = null;
   this.ready = false;
+  this.fontReady = false;
 }
 
 Preload.prototype = {
@@ -1525,7 +1562,7 @@ Preload.prototype = {
 
     this.load.onLoadComplete.addOnce(this.onLoadComplete, this);
     this.load.setPreloadSprite(this.asset);
-    this.load.image('yeoman', 'assets/yeoman-logo.png');
+    
     this.load.bitmapFont('minecraftia', 'assets/fonts/minecraftia.png', 'assets/fonts/minecraftia.xml');
     this.load.script('HudManager', 'js/plugins/HudManager.js');
     this.load.audio('ouch', 'assets/audio/ouch.wav');
@@ -1536,18 +1573,41 @@ Preload.prototype = {
     this.load.audio('playerDeath', 'assets/audio/player-death.wav');
     this.load.audio('playerShoot', 'assets/audio/player-shoot.wav');
 
+    var preload = this;
+
+    window.WebFontConfig = {
+
+    //  'active' means all requested fonts have finished loading
+    //  We set a 1 second delay before calling 'createText'.
+    //  For some reason if we don't the browser cannot render the text the first time it's created.
+    active: function() { 
+      console.log('active');
+      preload.game.time.events.add(Phaser.Timer.SECOND, preload.fontLoaded, preload); 
+    },
+
+    //  The Google Fonts we want to load (specify as many as you like in the array)
+    google: {
+      families: ['Audiowide::latin']
+    }
+
+  };
+
+  this.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
 
   },
   create: function() {
     this.asset.cropEnabled = false;
   },
   update: function() {
-    if(!!this.ready) {
+    if(!!this.ready && !!this.fontReady) {
       this.game.state.start('play');
     }
   },
   onLoadComplete: function() {
     this.ready = true;
+  },
+  fontLoaded: function() {
+    this.fontReady = true;
   }
 };
 
