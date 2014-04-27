@@ -2,7 +2,7 @@
 var Primative = require('./primative');
 
 var Oxygen = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, '#4ec3ff');
+  Primative.call(this, game, x, y, Oxygen.SIZE, Oxygen.COLOR);
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
@@ -24,6 +24,9 @@ Oxygen.prototype.update = function() {
   this.rotation += 0.01;
   
 };
+
+Oxygen.SIZE = 16;
+Oxygen.COLOR = '#4ec3ff';
 
 Oxygen.prototype.onRevived = function() {
   this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);

@@ -4,6 +4,7 @@
   var RedBloodCell = require('../prefabs/redBloodCell');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
+  var Background = require('../prefabs/background');
   var IntroManager = require('../plugins/IntroManager');
   var LevelManager = require('../plugins/LevelManager');
   var GameManager = require('../plugins/GameManager');
@@ -16,14 +17,13 @@
       this.hemoMax = 10;
       this.level = null;
       this.introManager = new IntroManager(this.game);
-      this.levelManager = new LevelManager();
 
-      this.level = this.levelManager.get(this.score);
+      this.level = LevelManager.get(this.score);
 
 
       this.respawnTimer = 0;
-      //this.background = new Background(this.game, 1024);
-      //this.game.add.existing(this.background);
+      this.background = this.game.add.tileSprite(0,0,this.game.width, this.game.height, new Background(this.game, 1024));
+      this.background.autoScroll(-400,0);
 
       
 
@@ -132,7 +132,7 @@
       if(enemy.health === 0) {
         enemy.kill();
         this.score++;
-        this.level = this.levelManager.get(this.score);
+        this.level = LevelManager.get(this.score);
         var hemo = this.hemoglobins.getFirstExists(false);
         if(!hemo) {
           hemo = new Hemoglobin(this.game, 0,0);

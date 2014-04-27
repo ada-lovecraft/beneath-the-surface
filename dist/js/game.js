@@ -15,12 +15,20 @@ window.onload = function () {
 
   game.state.start('boot');
 };
-},{"./states/boot":18,"./states/gameover":19,"./states/menu":20,"./states/play":21,"./states/preload":22}],2:[function(require,module,exports){
+},{"./states/boot":19,"./states/gameover":20,"./states/menu":21,"./states/play":22,"./states/preload":23}],2:[function(require,module,exports){
 'use strict';
 
+var RedBloodCell = require('../prefabs/redBloodCell');
+var Player = require('../prefabs/player');
+var Hemoglobin = require('../prefabs/hemoglobin');
+var Oxygen = require('../prefabs/oxygen');
+var CommonCold = require('../prefabs/commonCold');
 
 var GameManager  = (function() {
   var _cache = {};
+  var _friendlies = [RedBloodCell, Player];
+  var _pickups = [Hemoglobin, Oxygen];
+  var _enemies = [CommonCold];
   return {
     get: function(id) {
       return _cache[id];
@@ -31,12 +39,15 @@ var GameManager  = (function() {
       } else {
         throw 'GameManager already contains: ' + id;
       }
+    },
+    types: function() {
+      return _.intersection(_friendlies, _pickups, _enemies);
     }
   };
 })();
 
 module.exports = GameManager;
-},{}],3:[function(require,module,exports){
+},{"../prefabs/commonCold":10,"../prefabs/hemoglobin":13,"../prefabs/oxygen":15,"../prefabs/player":16,"../prefabs/redBloodCell":18}],3:[function(require,module,exports){
 'use strict';
 var Introduction = require('../prefabs/introduction');
 var Intros = require('./intros');
@@ -82,13 +93,13 @@ Object.defineProperty(IntroManager.prototype, 'length', {
 
 
 module.exports = IntroManager;
-},{"../prefabs/introduction":13,"./intros":5}],4:[function(require,module,exports){
+},{"../prefabs/introduction":14,"./intros":5}],4:[function(require,module,exports){
 'use strict';
 
 var CommonCold = require('../prefabs/commonCold');
 
-var LevelManager  = function() {
-  this.levels = [
+var LevelManager  = (function() {
+  var _levels = [
     {
       score: 0,
       respawnRate: 500,
@@ -112,18 +123,23 @@ var LevelManager  = function() {
       ],
     }
   ];
+  return { 
+    get: function(score) {
+      var possible = _.filter(_levels, function(level) {
+        return level.score <= score;
+      });
+      return _.last(possible);
 
-};
+    },
+    levels: function() {
+      return _levels;
+    }
+  };
+})();
 
-LevelManager.prototype.get = function(score) {
-  var possible = _.filter(this.levels, function(level) {
-    return level.score <= score;
-  });
-  return _.last(possible);
-};
 
 module.exports = LevelManager;
-},{"../prefabs/commonCold":9}],5:[function(require,module,exports){
+},{"../prefabs/commonCold":10}],5:[function(require,module,exports){
 'use strict';
 
 var CommonCold = require('../prefabs/commonCold');
@@ -175,7 +191,7 @@ exports.redBloodCell = {
   color: '#fc8383',
   spriteClass: RedBloodCell
 };
-},{"../prefabs/commonCold":9,"../prefabs/hemoglobin":12,"../prefabs/oxygen":14,"../prefabs/player":15,"../prefabs/redBloodCell":17}],6:[function(require,module,exports){
+},{"../prefabs/commonCold":10,"../prefabs/hemoglobin":13,"../prefabs/oxygen":15,"../prefabs/player":16,"../prefabs/redBloodCell":18}],6:[function(require,module,exports){
 'use strict';
 
 // Phaser Point Extensions
@@ -940,6 +956,42 @@ module.exports = Automata;
 
 },{"../plugins/utils":6}],8:[function(require,module,exports){
 'use strict';
+var GameManager = require('../plugins/GameManager'); 
+var Background = function(game, size) {
+  size = size || 1024;
+  Phaser.BitmapData.call(this, game, size, size);
+  this.createBackground();
+};
+
+Background.prototype = Object.create(Phaser.BitmapData.prototype);
+Background.prototype.constructor = Background;
+
+Background.prototype.update = function() {
+  
+  // write your prefab's specific update code here
+  
+};
+
+Background.prototype.createBackground = function() {
+  var x, y, type,
+      ctx = this.ctx;
+  for(var i = 0; i < this.size / 10; i++) {
+    x = this.game.rnd.integerInRange(0, this.size);
+    y = this.game.rnd.integerInRange(0, this.size);
+    ctx.save();
+    ctx.translate(x,y);
+    type = _.shuffle(GameManager.types());
+    type.drawBody(ctx, type.SIZE, type.COLOR);
+    ctx.restore();
+  }
+  this.render();
+  this.refreshBuffer();
+};
+
+module.exports = Background;
+
+},{"../plugins/GameManager":2}],9:[function(require,module,exports){
+'use strict';
 var Primative = require('./primative');
 var Automata = require('./automata');
 var cellCounter = 0;
@@ -1050,14 +1102,14 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
 
 module.exports = Cell;
 
-},{"./automata":7,"./primative":16}],9:[function(require,module,exports){
+},{"./automata":7,"./primative":17}],10:[function(require,module,exports){
 'use strict';
 var Enemy = require('./enemy');
 var Utils = require('../plugins/utils');
 var GameManager = require('../plugins/GameManager');
 
 var CommonCold = function(game, x, y) {
-  Enemy.call(this, game, x, y, 16, '#33d743',1);
+  Enemy.call(this, game, x, y, CommonCold.SIZE, CommonCold.COLOR,1);
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
@@ -1083,6 +1135,9 @@ var CommonCold = function(game, x, y) {
 
 CommonCold.prototype = Object.create(Enemy.prototype);
 CommonCold.prototype.constructor = CommonCold;
+
+CommonCold.SIZE = 16;
+CommonCold.COLOR = '#33d743';
 
 CommonCold.prototype.update = function() {
   Enemy.prototype.update.call(this);
@@ -1118,7 +1173,7 @@ CommonCold.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = CommonCold;
 
-},{"../plugins/GameManager":2,"../plugins/utils":6,"./enemy":11}],10:[function(require,module,exports){
+},{"../plugins/GameManager":2,"../plugins/utils":6,"./enemy":12}],11:[function(require,module,exports){
 'use strict';
 
 var Primative = require('./primative');
@@ -1152,7 +1207,7 @@ module.exports = CrossHair;
 
 
 
-},{"./primative":16}],11:[function(require,module,exports){
+},{"./primative":17}],12:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
@@ -1179,12 +1234,12 @@ Enemy.prototype.onKilled = function() {
 
 module.exports = Enemy;
 
-},{"./cell":8}],12:[function(require,module,exports){
+},{"./cell":9}],13:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
 var Hemoglobin = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, '#c820ff');
+  Primative.call(this, game, x, y, Hemoglobin.SIZE, Hemoglobin.COLOR);
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
@@ -1200,11 +1255,15 @@ var Hemoglobin = function(game, x, y) {
 Hemoglobin.prototype = Object.create(Phaser.Sprite.prototype);
 Hemoglobin.prototype.constructor = Hemoglobin;
 
+Hemoglobin.SIZE = 16;
+Hemoglobin.COLOR = '#c820ff';
+
 Hemoglobin.prototype.update = function() {
   this.rotation += 0.1;
   // write your prefab's specific update code here
   
 };
+
 
 Hemoglobin.prototype.onRevived = function() {
   this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
@@ -1247,7 +1306,7 @@ Hemoglobin.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Hemoglobin;
 
-},{"./primative":16}],13:[function(require,module,exports){
+},{"./primative":17}],14:[function(require,module,exports){
 'use strict';
 var Utils = require('../plugins/utils');
 var Introduction = function(game,  config) {
@@ -1358,12 +1417,12 @@ Introduction.prototype.drawClose = function() {
 };
 module.exports = Introduction;
 
-},{"../plugins/utils":6}],14:[function(require,module,exports){
+},{"../plugins/utils":6}],15:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
 var Oxygen = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, '#4ec3ff');
+  Primative.call(this, game, x, y, Oxygen.SIZE, Oxygen.COLOR);
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
@@ -1385,6 +1444,9 @@ Oxygen.prototype.update = function() {
   this.rotation += 0.01;
   
 };
+
+Oxygen.SIZE = 16;
+Oxygen.COLOR = '#4ec3ff';
 
 Oxygen.prototype.onRevived = function() {
   this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
@@ -1427,13 +1489,13 @@ Oxygen.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Oxygen;
 
-},{"./primative":16}],15:[function(require,module,exports){
+},{"./primative":17}],16:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var CrossHair = require('./crosshair');
 
 var Player = function(game, x, y) {
-  Primative.call(this, game, x, y, 32, 'white');
+  Primative.call(this, game, x, y, Player.SIZE, Player.COLOR);
   this.anchor.setTo(0.5, 0.5);
   
   this.game.physics.arcade.enableBody(this);
@@ -1460,6 +1522,9 @@ var Player = function(game, x, y) {
   this.fireTimer = 0;
   this.fireRate = 200;
 };
+
+Player.SIZE = 32;
+Player.COLOR = 'white';
 
 Player.prototype = Object.create(Primative.prototype);
 Player.prototype.constructor = Player;
@@ -1551,7 +1616,7 @@ Player.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Player;
 
-},{"./crosshair":10,"./primative":16}],16:[function(require,module,exports){
+},{"./crosshair":11,"./primative":17}],17:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   this.size = size;
@@ -1587,14 +1652,14 @@ Primative.prototype.createTexture = function() {
 
 module.exports = Primative;
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 var GameManager = require('../plugins/GameManager');
 
 var RedBloodCell = function(game, x, y, size, color, maxHealth) {
-  color = color || '#fc8383';
-  size = size || 16;
+  color = color || RedBloodCell.COLOR;
+  size = size || RedBloodCell.SIZE;
   maxHealth = maxHealth || 3;
   Cell.call(this, game, x, y, size, color, maxHealth);
 
@@ -1639,6 +1704,9 @@ var RedBloodCell = function(game, x, y, size, color, maxHealth) {
 
 RedBloodCell.prototype = Object.create(Cell.prototype);
 RedBloodCell.prototype.constructor = RedBloodCell;
+
+RedBloodCell.SIZE = 16;
+RedBloodCell.COLOR = '#fc8383';
 
 RedBloodCell.prototype.update = function() {
   Cell.prototype.update.call(this);
@@ -1737,7 +1805,7 @@ RedBloodCell.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = RedBloodCell;
 
-},{"../plugins/GameManager":2,"./cell":8}],18:[function(require,module,exports){
+},{"../plugins/GameManager":2,"./cell":9}],19:[function(require,module,exports){
 
 'use strict';
 
@@ -1757,7 +1825,7 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 
 'use strict';
 function GameOver() {}
@@ -1783,7 +1851,7 @@ GameOver.prototype = {
 };
 module.exports = GameOver;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 
 'use strict';
 function Menu() {}
@@ -1816,13 +1884,14 @@ Menu.prototype = {
 
 module.exports = Menu;
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 
   'use strict';
   var Player = require('../prefabs/player');
   var RedBloodCell = require('../prefabs/redBloodCell');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
+  var Background = require('../prefabs/background');
   var IntroManager = require('../plugins/IntroManager');
   var LevelManager = require('../plugins/LevelManager');
   var GameManager = require('../plugins/GameManager');
@@ -1835,14 +1904,13 @@ module.exports = Menu;
       this.hemoMax = 10;
       this.level = null;
       this.introManager = new IntroManager(this.game);
-      this.levelManager = new LevelManager();
 
-      this.level = this.levelManager.get(this.score);
+      this.level = LevelManager.get(this.score);
 
 
       this.respawnTimer = 0;
-      //this.background = new Background(this.game, 1024);
-      //this.game.add.existing(this.background);
+      this.background = this.game.add.tileSprite(0,0,this.game.width, this.game.height, new Background(this.game, 1024));
+      this.background.autoScroll(-400,0);
 
       
 
@@ -1951,7 +2019,7 @@ module.exports = Menu;
       if(enemy.health === 0) {
         enemy.kill();
         this.score++;
-        this.level = this.levelManager.get(this.score);
+        this.level = LevelManager.get(this.score);
         var hemo = this.hemoglobins.getFirstExists(false);
         if(!hemo) {
           hemo = new Hemoglobin(this.game, 0,0);
@@ -1982,7 +2050,7 @@ module.exports = Menu;
   };
   
   module.exports = Play;
-},{"../plugins/GameManager":2,"../plugins/IntroManager":3,"../plugins/LevelManager":4,"../prefabs/hemoglobin":12,"../prefabs/oxygen":14,"../prefabs/player":15,"../prefabs/redBloodCell":17}],22:[function(require,module,exports){
+},{"../plugins/GameManager":2,"../plugins/IntroManager":3,"../plugins/LevelManager":4,"../prefabs/background":8,"../prefabs/hemoglobin":13,"../prefabs/oxygen":15,"../prefabs/player":16,"../prefabs/redBloodCell":18}],23:[function(require,module,exports){
 'use strict';
 function Preload() {
   this.asset = null;

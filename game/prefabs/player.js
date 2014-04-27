@@ -3,7 +3,7 @@ var Primative = require('./primative');
 var CrossHair = require('./crosshair');
 
 var Player = function(game, x, y) {
-  Primative.call(this, game, x, y, 32, 'white');
+  Primative.call(this, game, x, y, Player.SIZE, Player.COLOR);
   this.anchor.setTo(0.5, 0.5);
   
   this.game.physics.arcade.enableBody(this);
@@ -30,6 +30,9 @@ var Player = function(game, x, y) {
   this.fireTimer = 0;
   this.fireRate = 200;
 };
+
+Player.SIZE = 32;
+Player.COLOR = 'white';
 
 Player.prototype = Object.create(Primative.prototype);
 Player.prototype.constructor = Player;

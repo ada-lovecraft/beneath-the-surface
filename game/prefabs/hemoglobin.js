@@ -2,7 +2,7 @@
 var Primative = require('./primative');
 
 var Hemoglobin = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, '#c820ff');
+  Primative.call(this, game, x, y, Hemoglobin.SIZE, Hemoglobin.COLOR);
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
@@ -18,11 +18,15 @@ var Hemoglobin = function(game, x, y) {
 Hemoglobin.prototype = Object.create(Phaser.Sprite.prototype);
 Hemoglobin.prototype.constructor = Hemoglobin;
 
+Hemoglobin.SIZE = 16;
+Hemoglobin.COLOR = '#c820ff';
+
 Hemoglobin.prototype.update = function() {
   this.rotation += 0.1;
   // write your prefab's specific update code here
   
 };
+
 
 Hemoglobin.prototype.onRevived = function() {
   this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
