@@ -15,7 +15,28 @@ window.onload = function () {
 
   game.state.start('boot');
 };
-},{"./states/boot":16,"./states/gameover":17,"./states/menu":18,"./states/play":19,"./states/preload":20}],2:[function(require,module,exports){
+},{"./states/boot":18,"./states/gameover":19,"./states/menu":20,"./states/play":21,"./states/preload":22}],2:[function(require,module,exports){
+'use strict';
+
+
+var GameManager  = (function() {
+  var _cache = {};
+  return {
+    get: function(id) {
+      return _cache[id];
+    },
+    add: function(id, obj) {
+      if(!_cache.hasOwnProperty(id)) {
+        _cache[id] = obj;
+      } else {
+        throw 'GameManager already contains: ' + id;
+      }
+    }
+  };
+})();
+
+module.exports = GameManager;
+},{}],3:[function(require,module,exports){
 'use strict';
 var Introduction = require('../prefabs/introduction');
 var Intros = require('./intros');
@@ -61,7 +82,48 @@ Object.defineProperty(IntroManager.prototype, 'length', {
 
 
 module.exports = IntroManager;
-},{"../prefabs/introduction":11,"./intros":3}],3:[function(require,module,exports){
+},{"../prefabs/introduction":13,"./intros":5}],4:[function(require,module,exports){
+'use strict';
+
+var CommonCold = require('../prefabs/commonCold');
+
+var LevelManager  = function() {
+  this.levels = [
+    {
+      score: 0,
+      respawnRate: 500,
+      maxEnemies: 5,
+      enemyTypes: [
+        {
+          enemyClass: CommonCold,
+          id: 'commonCold'
+        }
+      ],
+    },
+    {
+      score: 10,
+      respawnRate: 1000,
+      maxEnemies: 10,
+      enemyTypes: [
+        {
+          enemyClass: CommonCold,
+          id: 'commonCold'
+        }
+      ],
+    }
+  ];
+
+};
+
+LevelManager.prototype.get = function(score) {
+  var possible = _.filter(this.levels, function(level) {
+    return level.score <= score;
+  });
+  return _.last(possible);
+};
+
+module.exports = LevelManager;
+},{"../prefabs/commonCold":9}],5:[function(require,module,exports){
 'use strict';
 
 var CommonCold = require('../prefabs/commonCold');
@@ -113,7 +175,7 @@ exports.redBloodCell = {
   color: '#fc8383',
   spriteClass: RedBloodCell
 };
-},{"../prefabs/commonCold":7,"../prefabs/hemoglobin":10,"../prefabs/oxygen":12,"../prefabs/player":13,"../prefabs/redBloodCell":15}],4:[function(require,module,exports){
+},{"../prefabs/commonCold":9,"../prefabs/hemoglobin":12,"../prefabs/oxygen":14,"../prefabs/player":15,"../prefabs/redBloodCell":17}],6:[function(require,module,exports){
 'use strict';
 
 // Phaser Point Extensions
@@ -192,7 +254,7 @@ Utils.polygon =function(ctx, x, y, radius, sides, startAngle, anticlockwise) {
 
 
 module.exports = Utils;
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 var Utils = require('../plugins/utils');
 var Automata = function(game, x, y, options) {
@@ -228,8 +290,7 @@ Automata.prototype.update = function() {
         accel.setTo(0,0);
         accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
         if(accel.getMagnitude() > 0) {
-          accel.scaleBy(behavior.strength);
-          this.applyForce(accel);
+          this.applyForce(accel, behavior.strength);
           priority.continue = false;
         }
       }
@@ -244,7 +305,7 @@ Automata.prototype.update = function() {
     this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
   }
 
-  this.body.velocity.limit(this.options.forces.maxVelocity);
+  this.body.velocity.limit(this.options.forces.maxSpeed);
   if(this.options.game.debug) {
     this.renderDebug.velocity(this);
   }
@@ -252,7 +313,8 @@ Automata.prototype.update = function() {
 
 Automata.prototype.applyForce = function(force, strength) {
   var velocity;
-  force.limit(this.options.forces.maxForce);
+  var limit = this.options.forces.maxForce * strength;
+  force.limit(this.options.forces.maxForce * strength);
   velocity = Phaser.Point.add(this.body.velocity, force);
   this.body.velocity.add(velocity.x, velocity.y);
 };
@@ -290,10 +352,10 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
       if(distance > 0 && distance < viewDistance) {
         desired.normalize();
         if(isSeeking && this.options.seek.slowArrival && distance < this.options.seek.slowingRadius) {
-          var m = Phaser.Math.mapLinear(distance,0, viewDistance,0, this.options.forces.maxVelocity);
+          var m = Phaser.Math.mapLinear(distance,0, viewDistance,0, this.options.forces.maxSpeed);
           desired.scaleBy(m);
         } else {
-          desired.scaleBy(this.options.forces.maxVelocity);
+          desired.scaleBy(this.options.forces.maxSpeed);
         }
         
         
@@ -323,7 +385,7 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
     if (desired.getMagnitude() < viewDistance) {
       desired.normalize();
     
-      desired.multiply(-this.options.forces.maxVelocity, -this.options.forces.maxVelocity);
+      desired.multiply(-this.options.forces.maxSpeed, -this.options.forces.maxSpeed);
 
       steer = Phaser.Point.subtract(desired, this.body.velocity);
     }
@@ -418,7 +480,7 @@ Automata.prototype.wander = function() {
 Automata.prototype.getAllInRange = function(targets, viewDistance) {
   var inRange = [], difference;
 
-  targets.forEach(function(target) {
+  targets.forEachExists(function(target) {
     difference = Phaser.Point.subtract(target.position, this.position);
     if(difference.getMagnitude() < viewDistance) {
       inRange.push(target);
@@ -501,7 +563,7 @@ Automata.prototype.separate = function() {
 
   if(steer.getMagnitude() > 0) {
     steer.normalize();
-    steer.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    steer.multiply(this.options.forces.maxSpeed, this.options.forces.maxSpeed);
     steer.subtract(this.body.velocity.x, this.body.velocity.y);
     steer.setMagnitude(this.options.flocking.separation.strength);
   }
@@ -525,7 +587,7 @@ Automata.prototype.align = function() {
     sum.divide(count, count);  
 
     sum.normalize();
-    sum.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    sum.multiply(this.options.forces.maxSpeed, this.options.forces.maxSpeed);
     steer = Phaser.Point.subtract(sum, this.body.velocity);
     steer.setMagnitude(this.options.flocking.alignment.strength);
   }
@@ -563,6 +625,7 @@ Automata.prototype.cohesion = function() {
 
 
 Automata.prototype.checkBounds = function() {
+  var steer = new Phaser.Point();
   if(this.options.game.wrapWorldBounds === true) {
     if(this.position.x < this.edges.left ){
       this.position.x = this.game.width + this.radius;
@@ -576,7 +639,26 @@ Automata.prototype.checkBounds = function() {
     if(this.position.y > this.edges.bottom ){
       this.position.y = -this.radius;
     }
-  } 
+  } else {
+    var desired = new Phaser.Point();
+
+    if (this.position.x < this.options.game.edgeWidth) {
+      desired = new Phaser.Point(this.options.forces.maxSpeed, this.body.velocity.y);
+    } 
+    else if (this.position.x > this.game.width - this.options.game.edgeWidth) {
+      desired = new Phaser.Point(-this.options.forces.maxSpeed, this.body.velocity.y);
+    } 
+
+    if (this.position.y < this.options.game.edgeWidth) {
+      desired = new Phaser.Point(this.body.velocity.x, this.options.forces.maxSpeed);
+    } 
+    else if (this.position.y > this.game.height - this.options.game.edgeWidth) {
+      desired = new Phaser.Point(this.body.velocity.x, -this.options.game.edgeWidth);
+    } 
+
+    steer = desired;
+  }
+  return steer;
 };
 
 Automata.prototype.setOptions = function(options) {
@@ -617,9 +699,17 @@ Automata.defaultOptions = Object.freeze({
     edgeWidth: 25,
     debug: false
   },
+  
   forces: {
-    maxVelocity: 100.0,
+    maxSpeed: 100.0,
     maxForce: 100.0
+  },
+  checkBounds: {
+    name: 'checkBounds',
+    enabled: true,
+    priority: 0,
+    strength: 1,
+    method: Automata.prototype.checkBounds
   },
   flocking: {
     name: 'flocking',
@@ -848,7 +938,7 @@ Automata.debug.constructor = Automata.debug;
 
 module.exports = Automata;
 
-},{"../plugins/utils":4}],6:[function(require,module,exports){
+},{"../plugins/utils":6}],8:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var Automata = require('./automata');
@@ -860,10 +950,6 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   
   
   var options = {
-    wander: {
-      enabled: true,
-      strength: 0.5
-    }, 
     game: {
       wrapWorldBounds: false
     }
@@ -877,7 +963,7 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   this.game.physics.arcade.enableBody(this);
 
   this.body.collideWorldBounds = true;
-  this.body.bounce.setTo(1,1);
+  this.body.bounce.setTo(0.5,0.5);
 
   this.health = this.maxHealth;
 
@@ -964,15 +1050,34 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
 
 module.exports = Cell;
 
-},{"./automata":5,"./primative":14}],7:[function(require,module,exports){
+},{"./automata":7,"./primative":16}],9:[function(require,module,exports){
 'use strict';
 var Enemy = require('./enemy');
 var Utils = require('../plugins/utils');
+var GameManager = require('../plugins/GameManager');
+
 var CommonCold = function(game, x, y) {
   Enemy.call(this, game, x, y, 16, '#33d743',1);
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
+
+  this.automataOptions = {
+    forces: {
+      maxVelocity: 50
+    },
+    wander: {
+      enabled: true 
+    },
+    flee: {
+      target: GameManager.get('player'),
+      enabled: true,
+      viewDistance: 200
+    },
+    game: {
+      debug: false
+    }
+  };
   
 };
 
@@ -1013,7 +1118,7 @@ CommonCold.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = CommonCold;
 
-},{"../plugins/utils":4,"./enemy":9}],8:[function(require,module,exports){
+},{"../plugins/GameManager":2,"../plugins/utils":6,"./enemy":11}],10:[function(require,module,exports){
 'use strict';
 
 var Primative = require('./primative');
@@ -1047,7 +1152,7 @@ module.exports = CrossHair;
 
 
 
-},{"./primative":14}],9:[function(require,module,exports){
+},{"./primative":16}],11:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
@@ -1057,6 +1162,7 @@ var Enemy = function(game, x, y, size, color, maxHealth) {
   Cell.call(this, game, x, y, size, color, maxHealth);
 
   this.deathSound = this.game.add.audio('enemyDeath');
+  this.alive = false;
 };
 
 Enemy.prototype = Object.create(Cell.prototype);
@@ -1073,7 +1179,7 @@ Enemy.prototype.onKilled = function() {
 
 module.exports = Enemy;
 
-},{"./cell":6}],10:[function(require,module,exports){
+},{"./cell":8}],12:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
@@ -1083,7 +1189,7 @@ var Hemoglobin = function(game, x, y) {
 
   this.game.physics.arcade.enableBody(this);
 
-  this.killSound = this.game.add.audio('hemoglobinPickup');
+  
   // initialize your prefab here
   
   this.events.onKilled.add(this.onKilled, this);
@@ -1107,7 +1213,6 @@ Hemoglobin.prototype.onRevived = function() {
 };
 
 Hemoglobin.prototype.onKilled = function() {
-  this.killSound.play();
 };
 
 Hemoglobin.prototype.createTexture = function() {
@@ -1142,7 +1247,7 @@ Hemoglobin.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Hemoglobin;
 
-},{"./primative":14}],11:[function(require,module,exports){
+},{"./primative":16}],13:[function(require,module,exports){
 'use strict';
 var Utils = require('../plugins/utils');
 var Introduction = function(game,  config) {
@@ -1253,7 +1358,7 @@ Introduction.prototype.drawClose = function() {
 };
 module.exports = Introduction;
 
-},{"../plugins/utils":4}],12:[function(require,module,exports){
+},{"../plugins/utils":6}],14:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
@@ -1322,7 +1427,7 @@ Oxygen.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Oxygen;
 
-},{"./primative":14}],13:[function(require,module,exports){
+},{"./primative":16}],15:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var CrossHair = require('./crosshair');
@@ -1446,7 +1551,7 @@ Player.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Player;
 
-},{"./crosshair":8,"./primative":14}],14:[function(require,module,exports){
+},{"./crosshair":10,"./primative":16}],16:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   this.size = size;
@@ -1455,6 +1560,8 @@ var Primative = function(game, x, y, size, color ) {
   this.bmd = game.add.bitmapData(this.size, this.size);
   this.createTexture();
   Phaser.Sprite.call(this, game, x, y, this.bmd);
+  this.checkWorldBounds = true;
+  this.outOfBoundsKill = true;
 
   // initialize your prefab here
 };
@@ -1480,20 +1587,51 @@ Primative.prototype.createTexture = function() {
 
 module.exports = Primative;
 
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
+var GameManager = require('../plugins/GameManager');
 
 var RedBloodCell = function(game, x, y, size, color, maxHealth) {
   color = color || '#fc8383';
   size = size || 16;
   maxHealth = maxHealth || 3;
   Cell.call(this, game, x, y, size, color, maxHealth);
+
   this.canBeDamaged = true;
   this.panicTween = null;
   this.ouchSound = this.game.add.audio('ouch');
   this.oxygenSound = this.game.add.audio('oxygenPickup');
   this.deathSound = this.game.add.audio('cellDeath');
+  this.alive = false;
+
+  this.automataOptions = {
+    seek: {
+          target: this.oxygen
+        },
+    evade: {
+      enabled: true,
+      target: GameManager.get('enemies'),
+      strength: 1.0,
+      viewDistance: 200,
+    },
+    flee:{
+      target: GameManager.get('enemies'),
+      strength: 1.0
+    },
+    wander: {
+      strength: 1.0,
+      enabled: true
+    },
+    game: {
+      debug: false,
+      wrapWorldBounds: false
+    },
+    forces: {
+      maxVelocity: 100
+    }
+  };
+
 
   this.events.onRevived.add(this.onRevived, this);
 
@@ -1573,7 +1711,7 @@ RedBloodCell.prototype.takeDamage = function() {
 };
 
 RedBloodCell.prototype.onRevived = function() {
-
+  this.health = this.maxHealth;
 };
 
 RedBloodCell.prototype.createTexture = function() {
@@ -1599,7 +1737,7 @@ RedBloodCell.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = RedBloodCell;
 
-},{"./cell":6}],16:[function(require,module,exports){
+},{"../plugins/GameManager":2,"./cell":8}],18:[function(require,module,exports){
 
 'use strict';
 
@@ -1619,7 +1757,7 @@ Boot.prototype = {
 
 module.exports = Boot;
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 
 'use strict';
 function GameOver() {}
@@ -1645,7 +1783,7 @@ GameOver.prototype = {
 };
 module.exports = GameOver;
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 
 'use strict';
 function Menu() {}
@@ -1678,24 +1816,37 @@ Menu.prototype = {
 
 module.exports = Menu;
 
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 
   'use strict';
   var Player = require('../prefabs/player');
-  var CommonCold = require('../prefabs/commonCold');
   var RedBloodCell = require('../prefabs/redBloodCell');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
   var IntroManager = require('../plugins/IntroManager');
+  var LevelManager = require('../plugins/LevelManager');
+  var GameManager = require('../plugins/GameManager');
 
   function Play() {}
   Play.prototype = {
     create: function() {
-      this.introManager = new IntroManager(this.game);
-
       this.score = 0;
       this.hemoCount = 0;
       this.hemoMax = 10;
+      this.level = null;
+      this.introManager = new IntroManager(this.game);
+      this.levelManager = new LevelManager();
+
+      this.level = this.levelManager.get(this.score);
+
+
+      this.respawnTimer = 0;
+      //this.background = new Background(this.game, 1024);
+      //this.game.add.existing(this.background);
+
+      
+
+      
 
 
       this.gamehud = Phaser.Plugin.HUDManager.create(this.game, this, 'gamehud');
@@ -1725,26 +1876,26 @@ module.exports = Menu;
 
       this.hemoglobins = this.game.add.group();
       
-      this.friendlies = this.game.add.group();
+      this.redBloodCells = this.game.add.group();
 
       this.player = new Player(this.game, this.game.world.centerX, this.game.world.centerY, 16, 'white');
+      
       this.game.add.existing(this.player);
-      this.friendlies.add(this.player);
+      this.redBloodCells.add(this.player);
 
       this.intros = this.game.add.group();
 
-
+      GameManager.add('player', this.player);
+      GameManager.add('enemies', this.enemies);
+      GameManager.add('friendlies', this.friendlies);
+      GameManager.add('oxygen', this.oxygen);
       var i;
-      for(i =0; i < 10; i++) {
-        var enemy = new CommonCold(this.game, this.game.world.randomX, this.game.world.randomY, 16);
-        this.enemies.add(enemy);
-      }
 
       
 
       for(i = 0; i < 10; i++) {
         var friendly = new RedBloodCell(this.game, this.game.world.randomX, this.game.world.randomY, 16);
-        this.friendlies.add(friendly);
+        this.redBloodCells.add(friendly);
       }
 
       for(i = 0; i < 10; i++ ){
@@ -1754,48 +1905,41 @@ module.exports = Menu;
       }
 
       this.oxygen.callAll('onRevived');
-        
-
-      this.friendlies.setAll('automataOptions', {
-        seek: {
-          enabled: true,
-          target: this.oxygen,
-          viewDistance: 100,
-        },
-        evade: {
-          enabled: true,
-          target: this.enemies,
-          strength: 1.0,
-          viewDistance: 100,
-        },
-        flee:{
-          target: this.enemies,
-          strength: 1.0
-        },
-        game: {
-          debug: false,
-          wrapWorldBounds: false
-        },
-        forces: {
-          maxVelocity: 200
-        }
-      });
 
       this.introManager.queue('whiteBloodCell');
       this.introManager.queue('redBloodCell');
       this.introManager.queue('oxygen');
       this.introManager.queue('hemo');
       this.introManager.queue('commonCold');
-      
-      
 
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
+      this.pickupSound = this.game.add.audio('hemoglobinPickup');
     },
     update: function() {
       if(this.introManager.length && !this.intros.getFirstExists(true)) {
         var intro = this.introManager.getNext();
         if(intro) {
           this.intros.add(intro);  
+        }
+      } else {
+        if(this.respawnTimer < this.game.time.now && this.enemies.countLiving() < this.level.maxEnemies) {
+          var reanimated = null;
+          var targetEnemy = _.sample(this.level.enemyTypes);
+          this.enemies.forEachDead(function(enemy) {
+            if( targetEnemy.enemyClass.constructor === enemy.constructor) {
+              reanimated = enemy;
+              return false;
+            }
+          });
+          if (!reanimated) {
+            reanimated = new targetEnemy.enemyClass(this.game,0,0, 16);
+            this.enemies.add(reanimated);
+          }
+
+          reanimated.reset(this.game.world.randomX, this.game.world.randomY);
+          reanimated.revive();
+          this.introManager.queue(targetEnemy.id);
+          this.respawnTimer = this.game.time.now + this.level.respawnRate;
         }
       }
       this.game.physics.arcade.overlap(this.player.bullets, this.enemies, this.enemyHit, null, this);
@@ -1807,24 +1951,27 @@ module.exports = Menu;
       if(enemy.health === 0) {
         enemy.kill();
         this.score++;
+        this.level = this.levelManager.get(this.score);
         var hemo = this.hemoglobins.getFirstExists(false);
         if(!hemo) {
           hemo = new Hemoglobin(this.game, 0,0);
           this.hemoglobins.add(hemo);
         }
+        this.respawnTimer = this.game.time.now + this.level.respawnRate;
         hemo.reset(enemy.x, enemy.y);
         hemo.revive();
       }
     },
     hemoglobinHit: function(player, hemo) {
       hemo.kill();
+      this.pickupSound.play();
       this.hemoCount++;
       if(this.hemoCount === this.hemoMax) {
         this.hemoCount = 0;
-        var bloodCell = this.friendlies.getFirstExists(false);
+        var bloodCell = this.redBloodCells.getFirstExists(false);
         if(!bloodCell) {
           bloodCell = new RedBloodCell(this.game, 0,0);
-          this.friendlies.add(bloodCell);
+          this.redBloodCells.add(bloodCell);
         }
         var spawnLocation = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
         bloodCell.reset(spawnLocation.x, spawnLocation.y, bloodCell.maxHealth);
@@ -1835,7 +1982,7 @@ module.exports = Menu;
   };
   
   module.exports = Play;
-},{"../plugins/IntroManager":2,"../prefabs/commonCold":7,"../prefabs/hemoglobin":10,"../prefabs/oxygen":12,"../prefabs/player":13,"../prefabs/redBloodCell":15}],20:[function(require,module,exports){
+},{"../plugins/GameManager":2,"../plugins/IntroManager":3,"../plugins/LevelManager":4,"../prefabs/hemoglobin":12,"../prefabs/oxygen":14,"../prefabs/player":15,"../prefabs/redBloodCell":17}],22:[function(require,module,exports){
 'use strict';
 function Preload() {
   this.asset = null;

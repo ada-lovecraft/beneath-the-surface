@@ -7,6 +7,7 @@ var Enemy = function(game, x, y, size, color, maxHealth) {
   Cell.call(this, game, x, y, size, color, maxHealth);
 
   this.deathSound = this.game.add.audio('enemyDeath');
+  this.alive = false;
 };
 
 Enemy.prototype = Object.create(Cell.prototype);

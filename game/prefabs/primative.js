@@ -6,6 +6,8 @@ var Primative = function(game, x, y, size, color ) {
   this.bmd = game.add.bitmapData(this.size, this.size);
   this.createTexture();
   Phaser.Sprite.call(this, game, x, y, this.bmd);
+  this.checkWorldBounds = true;
+  this.outOfBoundsKill = true;
 
   // initialize your prefab here
 };

@@ -9,10 +9,6 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   
   
   var options = {
-    wander: {
-      enabled: true,
-      strength: 0.5
-    }, 
     game: {
       wrapWorldBounds: false
     }
@@ -26,7 +22,7 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   this.game.physics.arcade.enableBody(this);
 
   this.body.collideWorldBounds = true;
-  this.body.bounce.setTo(1,1);
+  this.body.bounce.setTo(0.5,0.5);
 
   this.health = this.maxHealth;
 

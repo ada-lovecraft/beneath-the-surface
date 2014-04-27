@@ -1,20 +1,33 @@
 
   'use strict';
   var Player = require('../prefabs/player');
-  var CommonCold = require('../prefabs/commonCold');
   var RedBloodCell = require('../prefabs/redBloodCell');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
   var IntroManager = require('../plugins/IntroManager');
+  var LevelManager = require('../plugins/LevelManager');
+  var GameManager = require('../plugins/GameManager');
 
   function Play() {}
   Play.prototype = {
     create: function() {
-      this.introManager = new IntroManager(this.game);
-
       this.score = 0;
       this.hemoCount = 0;
       this.hemoMax = 10;
+      this.level = null;
+      this.introManager = new IntroManager(this.game);
+      this.levelManager = new LevelManager();
+
+      this.level = this.levelManager.get(this.score);
+
+
+      this.respawnTimer = 0;
+      //this.background = new Background(this.game, 1024);
+      //this.game.add.existing(this.background);
+
+      
+
+      
 
 
       this.gamehud = Phaser.Plugin.HUDManager.create(this.game, this, 'gamehud');
@@ -44,26 +57,26 @@
 
       this.hemoglobins = this.game.add.group();
       
-      this.friendlies = this.game.add.group();
+      this.redBloodCells = this.game.add.group();
 
       this.player = new Player(this.game, this.game.world.centerX, this.game.world.centerY, 16, 'white');
+      
       this.game.add.existing(this.player);
-      this.friendlies.add(this.player);
+      this.redBloodCells.add(this.player);
 
       this.intros = this.game.add.group();
 
-
+      GameManager.add('player', this.player);
+      GameManager.add('enemies', this.enemies);
+      GameManager.add('friendlies', this.friendlies);
+      GameManager.add('oxygen', this.oxygen);
       var i;
-      for(i =0; i < 10; i++) {
-        var enemy = new CommonCold(this.game, this.game.world.randomX, this.game.world.randomY, 16);
-        this.enemies.add(enemy);
-      }
 
       
 
       for(i = 0; i < 10; i++) {
         var friendly = new RedBloodCell(this.game, this.game.world.randomX, this.game.world.randomY, 16);
-        this.friendlies.add(friendly);
+        this.redBloodCells.add(friendly);
       }
 
       for(i = 0; i < 10; i++ ){
@@ -73,48 +86,41 @@
       }
 
       this.oxygen.callAll('onRevived');
-        
-
-      this.friendlies.setAll('automataOptions', {
-        seek: {
-          enabled: true,
-          target: this.oxygen,
-          viewDistance: 100,
-        },
-        evade: {
-          enabled: true,
-          target: this.enemies,
-          strength: 1.0,
-          viewDistance: 100,
-        },
-        flee:{
-          target: this.enemies,
-          strength: 1.0
-        },
-        game: {
-          debug: false,
-          wrapWorldBounds: false
-        },
-        forces: {
-          maxVelocity: 200
-        }
-      });
 
       this.introManager.queue('whiteBloodCell');
       this.introManager.queue('redBloodCell');
       this.introManager.queue('oxygen');
       this.introManager.queue('hemo');
       this.introManager.queue('commonCold');
-      
-      
 
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
+      this.pickupSound = this.game.add.audio('hemoglobinPickup');
     },
     update: function() {
       if(this.introManager.length && !this.intros.getFirstExists(true)) {
         var intro = this.introManager.getNext();
         if(intro) {
           this.intros.add(intro);  
+        }
+      } else {
+        if(this.respawnTimer < this.game.time.now && this.enemies.countLiving() < this.level.maxEnemies) {
+          var reanimated = null;
+          var targetEnemy = _.sample(this.level.enemyTypes);
+          this.enemies.forEachDead(function(enemy) {
+            if( targetEnemy.enemyClass.constructor === enemy.constructor) {
+              reanimated = enemy;
+              return false;
+            }
+          });
+          if (!reanimated) {
+            reanimated = new targetEnemy.enemyClass(this.game,0,0, 16);
+            this.enemies.add(reanimated);
+          }
+
+          reanimated.reset(this.game.world.randomX, this.game.world.randomY);
+          reanimated.revive();
+          this.introManager.queue(targetEnemy.id);
+          this.respawnTimer = this.game.time.now + this.level.respawnRate;
         }
       }
       this.game.physics.arcade.overlap(this.player.bullets, this.enemies, this.enemyHit, null, this);
@@ -126,24 +132,27 @@
       if(enemy.health === 0) {
         enemy.kill();
         this.score++;
+        this.level = this.levelManager.get(this.score);
         var hemo = this.hemoglobins.getFirstExists(false);
         if(!hemo) {
           hemo = new Hemoglobin(this.game, 0,0);
           this.hemoglobins.add(hemo);
         }
+        this.respawnTimer = this.game.time.now + this.level.respawnRate;
         hemo.reset(enemy.x, enemy.y);
         hemo.revive();
       }
     },
     hemoglobinHit: function(player, hemo) {
       hemo.kill();
+      this.pickupSound.play();
       this.hemoCount++;
       if(this.hemoCount === this.hemoMax) {
         this.hemoCount = 0;
-        var bloodCell = this.friendlies.getFirstExists(false);
+        var bloodCell = this.redBloodCells.getFirstExists(false);
         if(!bloodCell) {
           bloodCell = new RedBloodCell(this.game, 0,0);
-          this.friendlies.add(bloodCell);
+          this.redBloodCells.add(bloodCell);
         }
         var spawnLocation = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
         bloodCell.reset(spawnLocation.x, spawnLocation.y, bloodCell.maxHealth);

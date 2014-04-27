@@ -33,8 +33,7 @@ Automata.prototype.update = function() {
         accel.setTo(0,0);
         accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
         if(accel.getMagnitude() > 0) {
-          accel.scaleBy(behavior.strength);
-          this.applyForce(accel);
+          this.applyForce(accel, behavior.strength);
           priority.continue = false;
         }
       }
@@ -49,7 +48,7 @@ Automata.prototype.update = function() {
     this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
   }
 
-  this.body.velocity.limit(this.options.forces.maxVelocity);
+  this.body.velocity.limit(this.options.forces.maxSpeed);
   if(this.options.game.debug) {
     this.renderDebug.velocity(this);
   }
@@ -57,7 +56,8 @@ Automata.prototype.update = function() {
 
 Automata.prototype.applyForce = function(force, strength) {
   var velocity;
-  force.limit(this.options.forces.maxForce);
+  var limit = this.options.forces.maxForce * strength;
+  force.limit(this.options.forces.maxForce * strength);
   velocity = Phaser.Point.add(this.body.velocity, force);
   this.body.velocity.add(velocity.x, velocity.y);
 };
@@ -95,10 +95,10 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
       if(distance > 0 && distance < viewDistance) {
         desired.normalize();
         if(isSeeking && this.options.seek.slowArrival && distance < this.options.seek.slowingRadius) {
-          var m = Phaser.Math.mapLinear(distance,0, viewDistance,0, this.options.forces.maxVelocity);
+          var m = Phaser.Math.mapLinear(distance,0, viewDistance,0, this.options.forces.maxSpeed);
           desired.scaleBy(m);
         } else {
-          desired.scaleBy(this.options.forces.maxVelocity);
+          desired.scaleBy(this.options.forces.maxSpeed);
         }
         
         
@@ -128,7 +128,7 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
     if (desired.getMagnitude() < viewDistance) {
       desired.normalize();
     
-      desired.multiply(-this.options.forces.maxVelocity, -this.options.forces.maxVelocity);
+      desired.multiply(-this.options.forces.maxSpeed, -this.options.forces.maxSpeed);
 
       steer = Phaser.Point.subtract(desired, this.body.velocity);
     }
@@ -223,7 +223,7 @@ Automata.prototype.wander = function() {
 Automata.prototype.getAllInRange = function(targets, viewDistance) {
   var inRange = [], difference;
 
-  targets.forEach(function(target) {
+  targets.forEachExists(function(target) {
     difference = Phaser.Point.subtract(target.position, this.position);
     if(difference.getMagnitude() < viewDistance) {
       inRange.push(target);
@@ -306,7 +306,7 @@ Automata.prototype.separate = function() {
 
   if(steer.getMagnitude() > 0) {
     steer.normalize();
-    steer.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    steer.multiply(this.options.forces.maxSpeed, this.options.forces.maxSpeed);
     steer.subtract(this.body.velocity.x, this.body.velocity.y);
     steer.setMagnitude(this.options.flocking.separation.strength);
   }
@@ -330,7 +330,7 @@ Automata.prototype.align = function() {
     sum.divide(count, count);  
 
     sum.normalize();
-    sum.multiply(this.options.forces.maxVelocity, this.options.forces.maxVelocity);
+    sum.multiply(this.options.forces.maxSpeed, this.options.forces.maxSpeed);
     steer = Phaser.Point.subtract(sum, this.body.velocity);
     steer.setMagnitude(this.options.flocking.alignment.strength);
   }
@@ -368,6 +368,7 @@ Automata.prototype.cohesion = function() {
 
 
 Automata.prototype.checkBounds = function() {
+  var steer = new Phaser.Point();
   if(this.options.game.wrapWorldBounds === true) {
     if(this.position.x < this.edges.left ){
       this.position.x = this.game.width + this.radius;
@@ -381,7 +382,26 @@ Automata.prototype.checkBounds = function() {
     if(this.position.y > this.edges.bottom ){
       this.position.y = -this.radius;
     }
-  } 
+  } else {
+    var desired = new Phaser.Point();
+
+    if (this.position.x < this.options.game.edgeWidth) {
+      desired = new Phaser.Point(this.options.forces.maxSpeed, this.body.velocity.y);
+    } 
+    else if (this.position.x > this.game.width - this.options.game.edgeWidth) {
+      desired = new Phaser.Point(-this.options.forces.maxSpeed, this.body.velocity.y);
+    } 
+
+    if (this.position.y < this.options.game.edgeWidth) {
+      desired = new Phaser.Point(this.body.velocity.x, this.options.forces.maxSpeed);
+    } 
+    else if (this.position.y > this.game.height - this.options.game.edgeWidth) {
+      desired = new Phaser.Point(this.body.velocity.x, -this.options.game.edgeWidth);
+    } 
+
+    steer = desired;
+  }
+  return steer;
 };
 
 Automata.prototype.setOptions = function(options) {
@@ -422,9 +442,17 @@ Automata.defaultOptions = Object.freeze({
     edgeWidth: 25,
     debug: false
   },
+  
   forces: {
-    maxVelocity: 100.0,
+    maxSpeed: 100.0,
     maxForce: 100.0
+  },
+  checkBounds: {
+    name: 'checkBounds',
+    enabled: true,
+    priority: 0,
+    strength: 1,
+    method: Automata.prototype.checkBounds
   },
   flocking: {
     name: 'flocking',

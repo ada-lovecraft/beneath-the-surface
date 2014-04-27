@@ -7,7 +7,7 @@ var Hemoglobin = function(game, x, y) {
 
   this.game.physics.arcade.enableBody(this);
 
-  this.killSound = this.game.add.audio('hemoglobinPickup');
+  
   // initialize your prefab here
   
   this.events.onKilled.add(this.onKilled, this);
@@ -31,7 +31,6 @@ Hemoglobin.prototype.onRevived = function() {
 };
 
 Hemoglobin.prototype.onKilled = function() {
-  this.killSound.play();
 };
 
 Hemoglobin.prototype.createTexture = function() {
