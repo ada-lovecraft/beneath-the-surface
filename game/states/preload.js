@@ -24,6 +24,8 @@ Preload.prototype = {
     this.load.audio('hemoglobinPickup', 'assets/audio/hemoglobin-pickup.wav');
     this.load.audio('playerDeath', 'assets/audio/player-death.wav');
     this.load.audio('playerShoot', 'assets/audio/player-shoot.wav');
+    this.load.script('plasma', 'js/plugins/Plasma.js');
+
 
     var preload = this;
 

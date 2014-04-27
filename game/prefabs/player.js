@@ -33,6 +33,7 @@ var Player = function(game, x, y) {
 
 Player.SIZE = 32;
 Player.COLOR = 'white';
+Player.ID = 'whiteBloodCell';
 
 Player.prototype = Object.create(Primative.prototype);
 Player.prototype.constructor = Player;

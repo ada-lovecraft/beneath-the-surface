@@ -27,6 +27,7 @@ Oxygen.prototype.update = function() {
 
 Oxygen.SIZE = 16;
 Oxygen.COLOR = '#4ec3ff';
+Oxygen.ID = 'oxygen';
 
 Oxygen.prototype.onRevived = function() {
   this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);

@@ -18,14 +18,15 @@ window.onload = function () {
 },{"./states/boot":19,"./states/gameover":20,"./states/menu":21,"./states/play":22,"./states/preload":23}],2:[function(require,module,exports){
 'use strict';
 
-var RedBloodCell = require('../prefabs/redBloodCell');
-var Player = require('../prefabs/player');
-var Hemoglobin = require('../prefabs/hemoglobin');
-var Oxygen = require('../prefabs/oxygen');
-var CommonCold = require('../prefabs/commonCold');
+
 
 var GameManager  = (function() {
   var _cache = {};
+  var RedBloodCell = require('../prefabs/redBloodCell');
+  var Player = require('../prefabs/player');
+  var Hemoglobin = require('../prefabs/hemoglobin');
+  var Oxygen = require('../prefabs/oxygen');
+  var CommonCold = require('../prefabs/commonCold');
   var _friendlies = [RedBloodCell, Player];
   var _pickups = [Hemoglobin, Oxygen];
   var _enemies = [CommonCold];
@@ -41,7 +42,7 @@ var GameManager  = (function() {
       }
     },
     types: function() {
-      return _.intersection(_friendlies, _pickups, _enemies);
+      return _.union(_friendlies, _pickups, _enemies);
     }
   };
 })();
@@ -958,8 +959,8 @@ module.exports = Automata;
 'use strict';
 var GameManager = require('../plugins/GameManager'); 
 var Background = function(game, size) {
-  size = size || 1024;
-  Phaser.BitmapData.call(this, game, size, size);
+  this.size = size || 1024;
+  Phaser.BitmapData.call(this, game, this.size, this.size);
   this.createBackground();
 };
 
@@ -974,13 +975,13 @@ Background.prototype.update = function() {
 
 Background.prototype.createBackground = function() {
   var x, y, type,
-      ctx = this.ctx;
-  for(var i = 0; i < this.size / 10; i++) {
+      ctx = this.context;
+  for(var i = 0; i < 10; i++) {
     x = this.game.rnd.integerInRange(0, this.size);
     y = this.game.rnd.integerInRange(0, this.size);
     ctx.save();
     ctx.translate(x,y);
-    type = _.shuffle(GameManager.types());
+    type = _.sample(GameManager.types());
     type.drawBody(ctx, type.SIZE, type.COLOR);
     ctx.restore();
   }
@@ -1106,9 +1107,10 @@ module.exports = Cell;
 'use strict';
 var Enemy = require('./enemy');
 var Utils = require('../plugins/utils');
-var GameManager = require('../plugins/GameManager');
+
 
 var CommonCold = function(game, x, y) {
+  var GameManager = require('../plugins/GameManager');
   Enemy.call(this, game, x, y, CommonCold.SIZE, CommonCold.COLOR,1);
   this.anchor.setTo(0.5, 0.5);
 
@@ -1138,6 +1140,7 @@ CommonCold.prototype.constructor = CommonCold;
 
 CommonCold.SIZE = 16;
 CommonCold.COLOR = '#33d743';
+CommonCold.ID = 'commonCold';
 
 CommonCold.prototype.update = function() {
   Enemy.prototype.update.call(this);
@@ -1160,12 +1163,8 @@ CommonCold.drawBody = function(ctx, size, color, lineWidth) {
   ctx.strokeStyle = lineColor;
   
   ctx.beginPath();
-
   Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
-  ctx.save();
-  ctx.globalAlpha = 0.5;
   ctx.fill();
-  ctx.restore();
   ctx.beginPath();
   Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
   ctx.stroke();
@@ -1257,6 +1256,7 @@ Hemoglobin.prototype.constructor = Hemoglobin;
 
 Hemoglobin.SIZE = 16;
 Hemoglobin.COLOR = '#c820ff';
+Hemoglobin.ID = 'hemoglobin';
 
 Hemoglobin.prototype.update = function() {
   this.rotation += 0.1;
@@ -1447,6 +1447,7 @@ Oxygen.prototype.update = function() {
 
 Oxygen.SIZE = 16;
 Oxygen.COLOR = '#4ec3ff';
+Oxygen.ID = 'oxygen';
 
 Oxygen.prototype.onRevived = function() {
   this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
@@ -1525,6 +1526,7 @@ var Player = function(game, x, y) {
 
 Player.SIZE = 32;
 Player.COLOR = 'white';
+Player.ID = 'whiteBloodCell';
 
 Player.prototype = Object.create(Primative.prototype);
 Player.prototype.constructor = Player;
@@ -1655,9 +1657,10 @@ module.exports = Primative;
 },{}],18:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
-var GameManager = require('../plugins/GameManager');
+
 
 var RedBloodCell = function(game, x, y, size, color, maxHealth) {
+  var GameManager = require('../plugins/GameManager');
   color = color || RedBloodCell.COLOR;
   size = size || RedBloodCell.SIZE;
   maxHealth = maxHealth || 3;
@@ -1707,6 +1710,7 @@ RedBloodCell.prototype.constructor = RedBloodCell;
 
 RedBloodCell.SIZE = 16;
 RedBloodCell.COLOR = '#fc8383';
+RedBloodCell.ID = 'redBloodCell';
 
 RedBloodCell.prototype.update = function() {
   Cell.prototype.update.call(this);
@@ -1800,6 +1804,7 @@ RedBloodCell.drawBody = function(ctx, size, color, lineWidth) {
   ctx.arc(size/2, size/2, size/2.25, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
+  ctx.closePath();
 
 };
 
@@ -1909,8 +1914,19 @@ module.exports = Menu;
 
 
       this.respawnTimer = 0;
-      this.background = this.game.add.tileSprite(0,0,this.game.width, this.game.height, new Background(this.game, 1024));
-      this.background.autoScroll(-400,0);
+      this.background = this.game.add.sprite(0,0);
+      this.background.width = this.game.width;
+      this.background.height = this.game.height;
+      
+      this.plasma = this.game.add.filter('Plasma', this.game.width, this.game.height);
+      this.plasma.size = 0.003;
+      this.plasma.blueShift = 0.0;
+      this.plasma.greenShift = 0.0;
+      this.plasma.redShift = 0.3;
+      this.plasma.alpha = 0.15;
+      this.background.filters = [this.plasma];
+
+      
 
       
 
@@ -1984,6 +2000,9 @@ module.exports = Menu;
       this.pickupSound = this.game.add.audio('hemoglobinPickup');
     },
     update: function() {
+      this.plasma.update();
+      
+
       if(this.introManager.length && !this.intros.getFirstExists(true)) {
         var intro = this.introManager.getNext();
         if(intro) {
@@ -2077,6 +2096,8 @@ Preload.prototype = {
     this.load.audio('hemoglobinPickup', 'assets/audio/hemoglobin-pickup.wav');
     this.load.audio('playerDeath', 'assets/audio/player-death.wav');
     this.load.audio('playerShoot', 'assets/audio/player-shoot.wav');
+    this.load.script('plasma', 'js/plugins/Plasma.js');
+
 
     var preload = this;
 

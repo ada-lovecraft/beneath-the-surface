@@ -1,8 +1,9 @@
 'use strict';
 var Cell = require('./cell');
-var GameManager = require('../plugins/GameManager');
+
 
 var RedBloodCell = function(game, x, y, size, color, maxHealth) {
+  var GameManager = require('../plugins/GameManager');
   color = color || RedBloodCell.COLOR;
   size = size || RedBloodCell.SIZE;
   maxHealth = maxHealth || 3;
@@ -52,6 +53,7 @@ RedBloodCell.prototype.constructor = RedBloodCell;
 
 RedBloodCell.SIZE = 16;
 RedBloodCell.COLOR = '#fc8383';
+RedBloodCell.ID = 'redBloodCell';
 
 RedBloodCell.prototype.update = function() {
   Cell.prototype.update.call(this);
@@ -145,6 +147,7 @@ RedBloodCell.drawBody = function(ctx, size, color, lineWidth) {
   ctx.arc(size/2, size/2, size/2.25, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
+  ctx.closePath();
 
 };
 

@@ -20,6 +20,7 @@ Hemoglobin.prototype.constructor = Hemoglobin;
 
 Hemoglobin.SIZE = 16;
 Hemoglobin.COLOR = '#c820ff';
+Hemoglobin.ID = 'hemoglobin';
 
 Hemoglobin.prototype.update = function() {
   this.rotation += 0.1;

@@ -22,8 +22,19 @@
 
 
       this.respawnTimer = 0;
-      this.background = this.game.add.tileSprite(0,0,this.game.width, this.game.height, new Background(this.game, 1024));
-      this.background.autoScroll(-400,0);
+      this.background = this.game.add.sprite(0,0);
+      this.background.width = this.game.width;
+      this.background.height = this.game.height;
+      
+      this.plasma = this.game.add.filter('Plasma', this.game.width, this.game.height);
+      this.plasma.size = 0.003;
+      this.plasma.blueShift = 0.0;
+      this.plasma.greenShift = 0.0;
+      this.plasma.redShift = 0.3;
+      this.plasma.alpha = 0.15;
+      this.background.filters = [this.plasma];
+
+      
 
       
 
@@ -97,6 +108,9 @@
       this.pickupSound = this.game.add.audio('hemoglobinPickup');
     },
     update: function() {
+      this.plasma.update();
+      
+
       if(this.introManager.length && !this.intros.getFirstExists(true)) {
         var intro = this.introManager.getNext();
         if(intro) {

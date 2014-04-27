@@ -1,9 +1,10 @@
 'use strict';
 var Enemy = require('./enemy');
 var Utils = require('../plugins/utils');
-var GameManager = require('../plugins/GameManager');
+
 
 var CommonCold = function(game, x, y) {
+  var GameManager = require('../plugins/GameManager');
   Enemy.call(this, game, x, y, CommonCold.SIZE, CommonCold.COLOR,1);
   this.anchor.setTo(0.5, 0.5);
 
@@ -33,6 +34,7 @@ CommonCold.prototype.constructor = CommonCold;
 
 CommonCold.SIZE = 16;
 CommonCold.COLOR = '#33d743';
+CommonCold.ID = 'commonCold';
 
 CommonCold.prototype.update = function() {
   Enemy.prototype.update.call(this);
@@ -55,12 +57,8 @@ CommonCold.drawBody = function(ctx, size, color, lineWidth) {
   ctx.strokeStyle = lineColor;
   
   ctx.beginPath();
-
   Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
-  ctx.save();
-  ctx.globalAlpha = 0.5;
   ctx.fill();
-  ctx.restore();
   ctx.beginPath();
   Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
   ctx.stroke();

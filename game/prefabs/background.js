@@ -1,8 +1,8 @@
 'use strict';
 var GameManager = require('../plugins/GameManager'); 
 var Background = function(game, size) {
-  size = size || 1024;
-  Phaser.BitmapData.call(this, game, size, size);
+  this.size = size || 1024;
+  Phaser.BitmapData.call(this, game, this.size, this.size);
   this.createBackground();
 };
 
@@ -17,13 +17,13 @@ Background.prototype.update = function() {
 
 Background.prototype.createBackground = function() {
   var x, y, type,
-      ctx = this.ctx;
-  for(var i = 0; i < this.size / 10; i++) {
+      ctx = this.context;
+  for(var i = 0; i < 10; i++) {
     x = this.game.rnd.integerInRange(0, this.size);
     y = this.game.rnd.integerInRange(0, this.size);
     ctx.save();
     ctx.translate(x,y);
-    type = _.shuffle(GameManager.types());
+    type = _.sample(GameManager.types());
     type.drawBody(ctx, type.SIZE, type.COLOR);
     ctx.restore();
   }
