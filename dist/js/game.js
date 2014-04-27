@@ -61,13 +61,14 @@ Object.defineProperty(IntroManager.prototype, 'length', {
 
 
 module.exports = IntroManager;
-},{"../prefabs/introduction":12,"./intros":3}],3:[function(require,module,exports){
+},{"../prefabs/introduction":11,"./intros":3}],3:[function(require,module,exports){
 'use strict';
 
-var CommonCold = require('../prefabs/common-cold');
+var CommonCold = require('../prefabs/commonCold');
 var Player = require('../prefabs/player');
 var Oxygen = require('../prefabs/oxygen');
 var Hemoglobin = require('../prefabs/hemoglobin');
+var RedBloodCell = require('../prefabs/redBloodCell');
 
 exports.whiteBloodCell = {
   id: 'whiteBloodCell',
@@ -103,7 +104,16 @@ exports.hemo = {
   color: '#c820ff',
   spriteClass: Hemoglobin
 };
-},{"../prefabs/common-cold":7,"../prefabs/hemoglobin":11,"../prefabs/oxygen":13,"../prefabs/player":14}],4:[function(require,module,exports){
+
+exports.redBloodCell = {
+  id: 'redBloodCell',
+  name: 'The Red Blood Cell',
+  description: 'Great when they are in your body.\nGross when they aren\'t.',
+  mechanics: 'These are your flock. Protect them. If they all die, so do you.\n\nWill attempt to run away from foreign bodies and will eat oxygen if damaged. Invulnerable for a time after taking damage.',
+  color: '#fc8383',
+  spriteClass: RedBloodCell
+};
+},{"../prefabs/commonCold":7,"../prefabs/hemoglobin":10,"../prefabs/oxygen":12,"../prefabs/player":13,"../prefabs/redBloodCell":15}],4:[function(require,module,exports){
 'use strict';
 
 // Phaser Point Extensions
@@ -954,7 +964,7 @@ Object.defineProperty(Cell.prototype, 'automataOptions', {
 
 module.exports = Cell;
 
-},{"./automata":5,"./primative":15}],7:[function(require,module,exports){
+},{"./automata":5,"./primative":14}],7:[function(require,module,exports){
 'use strict';
 var Enemy = require('./enemy');
 var Utils = require('../plugins/utils');
@@ -1037,7 +1047,7 @@ module.exports = CrossHair;
 
 
 
-},{"./primative":15}],9:[function(require,module,exports){
+},{"./primative":14}],9:[function(require,module,exports){
 'use strict';
 var Cell = require('./cell');
 
@@ -1064,104 +1074,6 @@ Enemy.prototype.onKilled = function() {
 module.exports = Enemy;
 
 },{"./cell":6}],10:[function(require,module,exports){
-'use strict';
-var Cell = require('./cell');
-
-var Friendly = function(game, x, y, size, color, maxHealth) {
-  color = color || '#fc8383';
-  size = size || 8;
-  maxHealth = maxHealth || 3;
-  Cell.call(this, game, x, y, size, color, maxHealth);
-  this.canBeDamaged = true;
-  this.panicTween = null;
-  this.ouchSound = this.game.add.audio('ouch');
-  this.oxygenSound = this.game.add.audio('oxygenPickup');
-  this.deathSound = this.game.add.audio('cellDeath');
-
-  this.events.onRevived.add(this.onRevived, this);
-
-};
-
-Friendly.prototype = Object.create(Cell.prototype);
-Friendly.prototype.constructor = Friendly;
-
-Friendly.prototype.update = function() {
-  Cell.prototype.update.call(this);
-  if(this.health === this.maxHealth && this.options.seek.enabled) {
-    this.automataOptions = {
-      seek: {
-        enabled: false
-      }
-    };
-  } else if (this.health < this.maxHealth && !this.options.seek.enabled) {
-    this.automataOptions = {
-      seek: {
-        enabled: true
-      }
-    };
-  }
-  if(this.options.evade.target && this.canBeDamaged) {
-    this.game.physics.arcade.overlap(this, this.options.evade.target, this.takeDamage, null, this);  
-  }
-  this.game.physics.arcade.overlap(this, this.options.seek.target, this.oxygenPickup, null, this);
-
-};
-
-Friendly.prototype.oxygenPickup = function(friendly, oxygen) {
-  if(friendly.health < friendly.maxHealth) {
-    oxygen.kill();
-    friendly.health++;
-    this.oxygenSound.play();
-  }
-};
-
-Friendly.prototype.takeDamage = function() {
-  
-  this.health--;
-  if (this.health === 0) {
-    this.kill();
-    this.deathSound.play();
-    this.healthHUD.bar.kill();
-  } else {
-    this.ouchSound.play();
-    this.canBeDamaged = false;
-    this.automataOptions = {
-      evade: {
-        enabled: false
-      },
-      flee: {
-        enabled: true
-      },
-      forces: {
-        maxVelocity: 300
-      }
-    };
-
-    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
-    this.panicTween.onComplete.add(function() {
-      this.canBeDamaged = true;
-      this.automataOptions = {
-        evade: {
-          enabled: true
-        },
-        flee: {
-          enabled: false
-        },
-        forces: {
-          maxVelocity: 100
-        }
-      };
-    }, this);
-  }
-};
-
-Friendly.prototype.onRevived = function() {
-
-};
-
-module.exports = Friendly;
-
-},{"./cell":6}],11:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
@@ -1230,7 +1142,7 @@ Hemoglobin.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Hemoglobin;
 
-},{"./primative":15}],12:[function(require,module,exports){
+},{"./primative":14}],11:[function(require,module,exports){
 'use strict';
 var Utils = require('../plugins/utils');
 var Introduction = function(game,  config) {
@@ -1341,12 +1253,12 @@ Introduction.prototype.drawClose = function() {
 };
 module.exports = Introduction;
 
-},{"../plugins/utils":4}],13:[function(require,module,exports){
+},{"../plugins/utils":4}],12:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 
 var Oxygen = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, '#4e8cff');
+  Primative.call(this, game, x, y, 16, '#4ec3ff');
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
@@ -1386,19 +1298,21 @@ Oxygen.prototype.createTexture = function() {
 
 Oxygen.drawBody = function(ctx, size, color, lineWidth) {
   lineWidth = lineWidth || 1;
+  ctx.strokeStyle = '#4e8cff';
+  ctx.fillStyle = color;
 
   ctx.beginPath();
   //create circle outline
   ctx.arc(size / 2 , size / 2, size/2 - size / 8, 0, 2 * Math.PI, false);
-  ctx.strokeStyle = color;
   ctx.lineWidth = 1;
+  ctx.fill();
   ctx.stroke();
   ctx.closePath();
 
   // create small circle on outside
+  ctx.fillStyle = ctx.strokeStyle;
   ctx.beginPath();
   ctx.arc(size / 2, size / 8, size / 8, 0, 2 * Math.PI, false);
-  ctx.fillStyle = color;
   ctx.fill();
   ctx.closePath();
   
@@ -1408,7 +1322,7 @@ Oxygen.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Oxygen;
 
-},{"./primative":15}],14:[function(require,module,exports){
+},{"./primative":14}],13:[function(require,module,exports){
 'use strict';
 var Primative = require('./primative');
 var CrossHair = require('./crosshair');
@@ -1532,7 +1446,7 @@ Player.drawBody = function(ctx, size, color, lineWidth) {
 
 module.exports = Player;
 
-},{"./crosshair":8,"./primative":15}],15:[function(require,module,exports){
+},{"./crosshair":8,"./primative":14}],14:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   this.size = size;
@@ -1566,7 +1480,126 @@ Primative.prototype.createTexture = function() {
 
 module.exports = Primative;
 
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
+'use strict';
+var Cell = require('./cell');
+
+var RedBloodCell = function(game, x, y, size, color, maxHealth) {
+  color = color || '#fc8383';
+  size = size || 16;
+  maxHealth = maxHealth || 3;
+  Cell.call(this, game, x, y, size, color, maxHealth);
+  this.canBeDamaged = true;
+  this.panicTween = null;
+  this.ouchSound = this.game.add.audio('ouch');
+  this.oxygenSound = this.game.add.audio('oxygenPickup');
+  this.deathSound = this.game.add.audio('cellDeath');
+
+  this.events.onRevived.add(this.onRevived, this);
+
+};
+
+RedBloodCell.prototype = Object.create(Cell.prototype);
+RedBloodCell.prototype.constructor = RedBloodCell;
+
+RedBloodCell.prototype.update = function() {
+  Cell.prototype.update.call(this);
+  if(this.health === this.maxHealth && this.options.seek.enabled) {
+    this.automataOptions = {
+      seek: {
+        enabled: false
+      }
+    };
+  } else if (this.health < this.maxHealth && !this.options.seek.enabled) {
+    this.automataOptions = {
+      seek: {
+        enabled: true
+      }
+    };
+  }
+  if(this.options.evade.target && this.canBeDamaged) {
+    this.game.physics.arcade.overlap(this, this.options.evade.target, this.takeDamage, null, this);  
+  }
+  this.game.physics.arcade.overlap(this, this.options.seek.target, this.oxygenPickup, null, this);
+
+};
+
+RedBloodCell.prototype.oxygenPickup = function(RedBloodCell, oxygen) {
+  if(RedBloodCell.health < RedBloodCell.maxHealth) {
+    oxygen.kill();
+    RedBloodCell.health++;
+    this.oxygenSound.play();
+  }
+};
+
+RedBloodCell.prototype.takeDamage = function() {
+  
+  this.health--;
+  if (this.health === 0) {
+    this.kill();
+    this.deathSound.play();
+    this.healthHUD.bar.kill();
+  } else {
+    this.ouchSound.play();
+    this.canBeDamaged = false;
+    this.automataOptions = {
+      evade: {
+        enabled: false
+      },
+      flee: {
+        enabled: true
+      },
+      forces: {
+        maxVelocity: 300
+      }
+    };
+
+    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
+    this.panicTween.onComplete.add(function() {
+      this.canBeDamaged = true;
+      this.automataOptions = {
+        evade: {
+          enabled: true
+        },
+        flee: {
+          enabled: false
+        },
+        forces: {
+          maxVelocity: 100
+        }
+      };
+    }, this);
+  }
+};
+
+RedBloodCell.prototype.onRevived = function() {
+
+};
+
+RedBloodCell.prototype.createTexture = function() {
+  this.bmd.clear();
+  RedBloodCell.drawBody(this.bmd.ctx, this.size, this.color);
+  this.bmd.render();
+  this.bmd.refreshBuffer();
+};
+
+RedBloodCell.drawBody = function(ctx, size, color, lineWidth) {
+  lineWidth = lineWidth || 1;
+  var lineColor = '#9a0b0b';
+  ctx.lineWidth = 2;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = lineColor;
+  console.log(size);
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size/2.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+};
+
+module.exports = RedBloodCell;
+
+},{"./cell":6}],16:[function(require,module,exports){
 
 'use strict';
 
@@ -1649,8 +1682,8 @@ module.exports = Menu;
 
   'use strict';
   var Player = require('../prefabs/player');
-  var CommonCold = require('../prefabs/common-cold');
-  var Friendly = require('../prefabs/friendly');
+  var CommonCold = require('../prefabs/commonCold');
+  var RedBloodCell = require('../prefabs/redBloodCell');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
   var IntroManager = require('../plugins/IntroManager');
@@ -1709,8 +1742,8 @@ module.exports = Menu;
 
       
 
-      for(i = 0; i < 0; i++) {
-        var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      for(i = 0; i < 10; i++) {
+        var friendly = new RedBloodCell(this.game, this.game.world.randomX, this.game.world.randomY, 16);
         this.friendlies.add(friendly);
       }
 
@@ -1749,9 +1782,12 @@ module.exports = Menu;
       });
 
       this.introManager.queue('whiteBloodCell');
-      this.introManager.queue('commonCold');
+      this.introManager.queue('redBloodCell');
       this.introManager.queue('oxygen');
       this.introManager.queue('hemo');
+      this.introManager.queue('commonCold');
+      
+      
 
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
     },
@@ -1787,7 +1823,7 @@ module.exports = Menu;
         this.hemoCount = 0;
         var bloodCell = this.friendlies.getFirstExists(false);
         if(!bloodCell) {
-          bloodCell = new Friendly(this.game, 0,0);
+          bloodCell = new RedBloodCell(this.game, 0,0);
           this.friendlies.add(bloodCell);
         }
         var spawnLocation = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
@@ -1799,7 +1835,7 @@ module.exports = Menu;
   };
   
   module.exports = Play;
-},{"../plugins/IntroManager":2,"../prefabs/common-cold":7,"../prefabs/friendly":10,"../prefabs/hemoglobin":11,"../prefabs/oxygen":13,"../prefabs/player":14}],20:[function(require,module,exports){
+},{"../plugins/IntroManager":2,"../prefabs/commonCold":7,"../prefabs/hemoglobin":10,"../prefabs/oxygen":12,"../prefabs/player":13,"../prefabs/redBloodCell":15}],20:[function(require,module,exports){
 'use strict';
 function Preload() {
   this.asset = null;

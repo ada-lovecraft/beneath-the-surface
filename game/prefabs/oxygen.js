@@ -2,7 +2,7 @@
 var Primative = require('./primative');
 
 var Oxygen = function(game, x, y) {
-  Primative.call(this, game, x, y, 16, '#4e8cff');
+  Primative.call(this, game, x, y, 16, '#4ec3ff');
   this.anchor.setTo(0.5, 0.5);
 
   this.game.physics.arcade.enableBody(this);
@@ -42,19 +42,21 @@ Oxygen.prototype.createTexture = function() {
 
 Oxygen.drawBody = function(ctx, size, color, lineWidth) {
   lineWidth = lineWidth || 1;
+  ctx.strokeStyle = '#4e8cff';
+  ctx.fillStyle = color;
 
   ctx.beginPath();
   //create circle outline
   ctx.arc(size / 2 , size / 2, size/2 - size / 8, 0, 2 * Math.PI, false);
-  ctx.strokeStyle = color;
   ctx.lineWidth = 1;
+  ctx.fill();
   ctx.stroke();
   ctx.closePath();
 
   // create small circle on outside
+  ctx.fillStyle = ctx.strokeStyle;
   ctx.beginPath();
   ctx.arc(size / 2, size / 8, size / 8, 0, 2 * Math.PI, false);
-  ctx.fillStyle = color;
   ctx.fill();
   ctx.closePath();
   

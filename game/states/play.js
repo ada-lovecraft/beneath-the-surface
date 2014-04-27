@@ -1,8 +1,8 @@
 
   'use strict';
   var Player = require('../prefabs/player');
-  var CommonCold = require('../prefabs/common-cold');
-  var Friendly = require('../prefabs/friendly');
+  var CommonCold = require('../prefabs/commonCold');
+  var RedBloodCell = require('../prefabs/redBloodCell');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
   var IntroManager = require('../plugins/IntroManager');
@@ -61,8 +61,8 @@
 
       
 
-      for(i = 0; i < 0; i++) {
-        var friendly = new Friendly(this.game, this.game.world.randomX, this.game.world.randomY, 16);
+      for(i = 0; i < 10; i++) {
+        var friendly = new RedBloodCell(this.game, this.game.world.randomX, this.game.world.randomY, 16);
         this.friendlies.add(friendly);
       }
 
@@ -101,9 +101,12 @@
       });
 
       this.introManager.queue('whiteBloodCell');
-      this.introManager.queue('commonCold');
+      this.introManager.queue('redBloodCell');
       this.introManager.queue('oxygen');
       this.introManager.queue('hemo');
+      this.introManager.queue('commonCold');
+      
+      
 
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
     },
@@ -139,7 +142,7 @@
         this.hemoCount = 0;
         var bloodCell = this.friendlies.getFirstExists(false);
         if(!bloodCell) {
-          bloodCell = new Friendly(this.game, 0,0);
+          bloodCell = new RedBloodCell(this.game, 0,0);
           this.friendlies.add(bloodCell);
         }
         var spawnLocation = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
