@@ -1,7 +1,8 @@
 'use strict';
 var Utils = require('../plugins/utils');
-var Automata = function(game, x, y, options) {
-  Phaser.Sprite.call(this, game, x,y);
+var Primative = require('./primative');
+var Automata = function(game, x, y, size, color, options) {
+  Primative.call(this, game, x, y, size, color);
   this.options = _.merge({}, Automata.defaultOptions, _.defaults);
   this.setOptions(options);
 
@@ -15,42 +16,43 @@ var Automata = function(game, x, y, options) {
   
 };
 
-Automata.prototype = Object.create(Phaser.Sprite.prototype);
+Automata.prototype = Object.create(Primative.prototype);
 Automata.prototype.constructor = Automata;
 
 Automata.prototype.update = function() {
-  
-  // write your prefab's specific update code here
-  if(this.options.game.debug) {
-    this.renderDebug.clear();
-  }
-  var accel = new Phaser.Point();
+    if(this.options.enabled) {
+    // write your prefab's specific update code here
+    if(this.options.game.debug) {
+      this.renderDebug.clear();
+    }
+    var accel = new Phaser.Point();
 
-  _.every(this.priorityList, function(priority) {
-    priority.continue = true;
-    _.each(priority, function(behavior) {
-      if(behavior.enabled) {
-        accel.setTo(0,0);
-        accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
-        if(accel.getMagnitude() > 0) {
-          this.applyForce(accel, behavior.strength);
-          priority.continue = false;
+    _.every(this.priorityList, function(priority) {
+      priority.continue = true;
+      _.each(priority, function(behavior) {
+        if(behavior.enabled) {
+          accel.setTo(0,0);
+          accel = behavior.method.call(this, behavior.target, behavior.viewDistance);
+          if(accel.getMagnitude() > 0) {
+            this.applyForce(accel, behavior.strength);
+            priority.continue = false;
+          }
         }
-      }
+      }, this);
+      return priority.continue;
     }, this);
-    return priority.continue;
-  }, this);
 
 
-  
+    
 
-  if(this.options.game.rotateToVelocity) {
-    this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
-  }
+    if(this.options.game.rotateToVelocity) {
+      this.rotation = Math.atan2(this.body.velocity.y, this.body.velocity.x);
+    }
 
-  this.body.velocity.limit(this.options.forces.maxSpeed);
-  if(this.options.game.debug) {
-    this.renderDebug.velocity(this);
+    this.body.velocity.limit(this.options.forces.maxSpeed);
+    if(this.options.game.debug) {
+      this.renderDebug.velocity(this);
+    }
   }
 };
 
@@ -436,6 +438,7 @@ Automata.prototype.setOptions = function(options) {
 
 
 Automata.defaultOptions = Object.freeze({
+  enabled: true,
   game: {
     wrapWorldBounds: true,
     rotateToVelocity: true,

@@ -29,7 +29,7 @@ IntroManager.prototype.get = function(id) {
 };
 
 IntroManager.prototype.queue = function(id) {
-  if(!this.storage[id] || this.storage[id].show !== false) {
+  if((!this.storage.hasOwnProperty(id) || this.storage[id].show)  && !_.contains(this.introQ, id)) {
     this.introQ.push(id);  
   }
   

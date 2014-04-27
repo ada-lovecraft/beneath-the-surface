@@ -24,7 +24,9 @@ Preload.prototype = {
     this.load.audio('hemoglobinPickup', 'assets/audio/hemoglobin-pickup.wav');
     this.load.audio('playerDeath', 'assets/audio/player-death.wav');
     this.load.audio('playerShoot', 'assets/audio/player-shoot.wav');
+    this.load.audio('enemyDamage', 'assets/audio/enemy-damage2.wav');
     this.load.script('plasma', 'js/plugins/Plasma.js');
+
 
 
     var preload = this;
@@ -35,7 +37,6 @@ Preload.prototype = {
     //  We set a 1 second delay before calling 'createText'.
     //  For some reason if we don't the browser cannot render the text the first time it's created.
     active: function() { 
-      console.log('active');
       preload.game.time.events.add(Phaser.Timer.SECOND, preload.fontLoaded, preload); 
     },
 

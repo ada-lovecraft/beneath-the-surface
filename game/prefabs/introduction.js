@@ -22,8 +22,9 @@ var Introduction = function(game,  config) {
   
   var introStyle = { fill: 'white', font: '24px Audiowide' };
   var titleStyle = {fill: config.color, font: '24px Audiowide'};
-  var descriptionStyle = {fill: 'white', font: 'italic 16px Audiowide'};
-  var mechanicsStyle = {fill: 'white', font: '12px Audiowide', wordWrap: true, wordWrapWidth: 250};
+  var taglineStyle = {fill: 'white', font: 'italic 16px Audiowide'};
+  var descriptionStyle = {fill: 'white', font: '12px Audiowide', wordWrap: true, wordWrapWidth: 250};
+  var mechanicsStyle = {fill: config.color, font: '16px Audiowide', wordWrap: true, wordWrapWidth: 250};
   var closeStyle = {fill: 'white', font: '12px Audiowide'};
 
   var introText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  20, 'INTRODUCING:', introStyle);
@@ -33,9 +34,9 @@ var Introduction = function(game,  config) {
 
 
   
-
-  var descriptionText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  100, '"' + config.description + '" ', descriptionStyle);
-  var mechanicsText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  150, config.mechanics, mechanicsStyle);
+  var taglineText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  100, '"' + config.tagline + '" ', taglineStyle);
+  var descriptionText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  150, config.description, descriptionStyle);
+  var mechanicsText = this.game.add.text(backdrop.x - backdrop.width / 2 + 20, backdrop.y - backdrop.height / 2 +  225, config.mechanics, mechanicsStyle);
 
   this.sprite = this.game.add.sprite(backdrop.x + 150 , backdrop.y + 50, this.spriteBMD);
   this.sprite.anchor.setTo(0.5, 0.5);
@@ -55,6 +56,7 @@ var Introduction = function(game,  config) {
   this.add(backdrop);
   this.add(introText);
   this.add(titleText);
+  this.add(taglineText);
   this.add(descriptionText);
   this.add(mechanicsText);
   this.add(this.sprite);

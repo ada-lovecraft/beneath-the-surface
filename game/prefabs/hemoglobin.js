@@ -45,11 +45,11 @@ Hemoglobin.prototype.createTexture = function() {
   this.bmd.refreshBuffer();
 };
 
-Hemoglobin.drawBody = function(ctx, size, color, lineWidth) {
-  lineWidth = lineWidth || 1;
+Hemoglobin.drawBody = function(ctx, size) {
+  var lineWidth = lineWidth || 1;
   // draw dumbell line
   ctx.strokeStyle = '#761397';
-  ctx.fillStyle = color;
+  ctx.fillStyle = Hemoglobin.COLOR;
   ctx.lineWidth = lineWidth;
   
   

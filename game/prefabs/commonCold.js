@@ -26,6 +26,7 @@ var CommonCold = function(game, x, y) {
       debug: false
     }
   };
+
   
 };
 
@@ -35,25 +36,21 @@ CommonCold.prototype.constructor = CommonCold;
 CommonCold.SIZE = 16;
 CommonCold.COLOR = '#33d743';
 CommonCold.ID = 'commonCold';
+CommonCold.HEMOCHANCE = 0.5;
 
 CommonCold.prototype.update = function() {
-  Enemy.prototype.update.call(this);
+  Enemy.prototype.update.call(this, (function() {
+  }).bind(this));
   // write your prefab's specific update code here
-  
 };
 
-CommonCold.prototype.createTexture = function() {
-  this.bmd.clear();
-  CommonCold.drawBody(this.bmd.ctx, this.size, this.color);
-  this.bmd.render();
-  this.bmd.refreshBuffer();
-};
 
-CommonCold.drawBody = function(ctx, size, color, lineWidth) {
-  lineWidth = lineWidth || 1;
+
+CommonCold.drawBody = function(ctx, size) {
+  var lineWidth = 1;
   var lineColor = '#258c2f';
   ctx.lineWidth = lineWidth;
-  ctx.fillStyle = color;
+  ctx.fillStyle = CommonCold.COLOR;
   ctx.strokeStyle = lineColor;
   
   ctx.beginPath();

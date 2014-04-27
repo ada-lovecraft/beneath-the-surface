@@ -1,11 +1,17 @@
 'use strict';
 var Primative = require('./primative');
 var Automata = require('./automata');
+var CellParticle = require('./cellParticle');
 var cellCounter = 0;
+
 var Cell = function(game, x, y, size, color, maxHealth) {
+  this.gm = require('../plugins/GameManager');
   size = size || 16;
   this.cellColor = color || 'white';
   this.maxHealth = maxHealth || 5;
+  this.existsCache = true;
+  this.alive = true;
+  this._velocityCache = null;
   
   
   var options = {
@@ -13,10 +19,9 @@ var Cell = function(game, x, y, size, color, maxHealth) {
       wrapWorldBounds: false
     }
   };
-  
 
-  Automata.call(this, game, x, y, options);
-  Primative.call(this, game, x, y, size, this.cellColor);
+  Automata.call(this, game, x, y, size, this.cellColor, options);
+  
 
   this.anchor.setTo(0.5, 0.5);
   this.game.physics.arcade.enableBody(this);
@@ -27,46 +32,89 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   this.health = this.maxHealth;
 
   this.healthHUD = Phaser.Plugin.HUDManager.get('cellhud')
-  .addBar(0,0, this.radius * 2, 2, this.maxHealth, 'health', this, Phaser.Plugin.HUDManager.HEALTHBAR, false);
+  .addBar(0,0, this.radius * 3, 2, this.maxHealth, 'health', this, Phaser.Plugin.HUDManager.HEALTHBAR, false);
 
   this.healthHUD.bar.anchor.setTo(0.5, 0.5);
+  if(this.maxHealth === 1) {
+    this.healthHUD.bar.kill();
+  }
   this.game.add.existing(this.healthHUD.bar);
 
-  this.events.onKilled.add(this.onKilled, this);
+  
   this.id = cellCounter;
   this.label = null;
   cellCounter++;
   
-  
+  this.emitter = this.game.add.emitter(this.x, this.y, this.size);
+
+  this.emitter.particleClass = CellParticle;
+
+  this.emitter.makeParticles(this.constructor);
+  this.emitter.maxParticleAlpha = 0.5;
+  this.emitter.minParticleAlpha = 0.1;
+  this.emitter.maxParticleScale = 1.5;
+  this.emitter.minParticleScale = 0.5;
+  this.emitter.maxParticleSpeed = new Phaser.Point(50,50);
+  this.emitter.minPartleSpeed = new Phaser.Point(-50,-50);
+  this.events.onKilled.add(this.onKilled, this);
+  this.events.onRevived.add(this.onRevived, this);
   
 };
 
-Cell.prototype = Object.create(_.merge(Primative.prototype, Automata.prototype, _.defaults));
+Cell.prototype = Object.create(Automata.prototype);
 Cell.prototype.constructor = Cell;
 
-Cell.prototype.update = function() {
-  if(this.exists) {
-    Automata.prototype.update.call(this);
+Cell.prototype.update = function(next) {
+  if(this.gm.getCurrentState() === this.gm.states.ACTIVE) {
+    if(this.exists) {
+      Automata.prototype.update.call(this);
+    }
+    // write your prefab's specific update code here
+    if(this.healthHUD.bar.exists) {
+      this.healthHUD.bar.position.x = this.position.x;
+      this.healthHUD.bar.position.y = this.position.y - this.radius * 1.5;
+    }
+    if(this.options.game.debug && this.exists) {
+      Cell.debug.updateLabel(this);
+    }
+
+    this._velocityCache = this.body.velocity;
+
+    if(next instanceof Function) {
+      next();
+    }
+  } else {
+    this.body.velocity.setTo(0);
   }
-  // write your prefab's specific update code here
-  this.healthHUD.bar.position.x = this.position.x;
-  this.healthHUD.bar.position.y = this.position.y - this.radius;
-  if(this.options.game.debug && this.exists) {
-    Cell.debug.updateLabel(this);
-  }
-  
 };
 
 Cell.prototype.onKilled = function() {
   this.healthHUD.bar.kill();
+  this.emitter.start(true, 500, 0, 10);
+  this.emitter.position = this.position;
+  this.existsCache = false;
   if(this.options.game.debug) {
     Cell.debug.destroyLabels(this);
     this.renderDebug.clear();
   }
 };
 
-Cell.prototype.onRevived = function() {
+Cell.prototype.restore = function() {
+  this.body.velocity = this._velocityCache;
+};
 
+Cell.prototype.damage = function(amount) {
+  amount = amount || 1;
+  this.health -= amount;
+};
+
+Cell.prototype.onRevived = function() {
+  console.log(this.constructor.ID, this.maxHealth);
+  if(this.maxHealth > 1) {
+
+    this.healthHUD.bar.revive();
+  }
+  this.health = this.maxHealth;
 };
 
 Cell.debug = {

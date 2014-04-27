@@ -24,7 +24,7 @@ var RedBloodCell = function(game, x, y, size, color, maxHealth) {
       enabled: true,
       target: GameManager.get('enemies'),
       strength: 1.0,
-      viewDistance: 200,
+      viewDistance: 100,
     },
     flee:{
       target: GameManager.get('enemies'),
@@ -39,7 +39,7 @@ var RedBloodCell = function(game, x, y, size, color, maxHealth) {
       wrapWorldBounds: false
     },
     forces: {
-      maxVelocity: 100
+      maxVelocity: 150
     }
   };
 
@@ -56,24 +56,25 @@ RedBloodCell.COLOR = '#fc8383';
 RedBloodCell.ID = 'redBloodCell';
 
 RedBloodCell.prototype.update = function() {
-  Cell.prototype.update.call(this);
-  if(this.health === this.maxHealth && this.options.seek.enabled) {
-    this.automataOptions = {
-      seek: {
-        enabled: false
-      }
-    };
-  } else if (this.health < this.maxHealth && !this.options.seek.enabled) {
-    this.automataOptions = {
-      seek: {
-        enabled: true
-      }
-    };
-  }
-  if(this.options.evade.target && this.canBeDamaged) {
-    this.game.physics.arcade.overlap(this, this.options.evade.target, this.takeDamage, null, this);  
-  }
-  this.game.physics.arcade.overlap(this, this.options.seek.target, this.oxygenPickup, null, this);
+  Cell.prototype.update.call(this, (function() {
+    if(this.health === this.maxHealth && this.options.seek.enabled) {
+      this.automataOptions = {
+        seek: {
+          enabled: false
+        }
+      };
+    } else if (this.health < this.maxHealth && !this.options.seek.enabled) {
+      this.automataOptions = {
+        seek: {
+          enabled: true
+        }
+      };
+    }
+    if(this.options.evade.target && this.canBeDamaged) {
+      this.game.physics.arcade.overlap(this, this.options.evade.target, this.takeDamage, null, this);  
+    }
+    this.game.physics.arcade.overlap(this, this.options.seek.target, this.oxygenPickup, null, this);
+  }).bind(this));
 
 };
 
@@ -125,24 +126,15 @@ RedBloodCell.prototype.takeDamage = function() {
   }
 };
 
-RedBloodCell.prototype.onRevived = function() {
-  this.health = this.maxHealth;
-};
 
-RedBloodCell.prototype.createTexture = function() {
-  this.bmd.clear();
-  RedBloodCell.drawBody(this.bmd.ctx, this.size, this.color);
-  this.bmd.render();
-  this.bmd.refreshBuffer();
-};
 
-RedBloodCell.drawBody = function(ctx, size, color, lineWidth) {
-  lineWidth = lineWidth || 1;
+
+RedBloodCell.drawBody = function(ctx, size) {
+  var color = RedBloodCell.COLOR;
   var lineColor = '#9a0b0b';
   ctx.lineWidth = 2;
   ctx.fillStyle = color;
   ctx.strokeStyle = lineColor;
-  console.log(size);
   ctx.beginPath();
   ctx.arc(size/2, size/2, size/2.25, 0, Math.PI * 2);
   ctx.fill();

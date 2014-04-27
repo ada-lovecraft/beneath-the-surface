@@ -1,6 +1,8 @@
 'use strict';
 
 var CommonCold = require('../prefabs/commonCold');
+var Influenza = require('../prefabs/influenza');
+var SwineFlu = require('../prefabs/swineFlu');
 
 var LevelManager  = (function() {
   var _levels = [
@@ -12,8 +14,15 @@ var LevelManager  = (function() {
         {
           enemyClass: CommonCold,
           id: 'commonCold'
-        }
+        },
+        {
+          enemyClass: SwineFlu,
+          id: 'swineFlu'
+        },
+        
       ],
+      oxygenRate: 10000,
+      id: 1
     },
     {
       score: 10,
@@ -23,8 +32,14 @@ var LevelManager  = (function() {
         {
           enemyClass: CommonCold,
           id: 'commonCold'
+        },
+        {
+          enemyClass: Influenza,
+          id: 'influenza'
         }
       ],
+      oxygenRate: 5000,
+      id: 2
     }
   ];
   return { 

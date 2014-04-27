@@ -60,7 +60,9 @@ Utils.roundRect = function(ctx, x, y, width, height, radius, fill, stroke) {
 };
 
 Utils.polygon =function(ctx, x, y, radius, sides, startAngle, anticlockwise) {
-  if (sides < 3) return;
+  if (sides < 3) {
+    return;
+  }
   var a = (Math.PI * 2)/sides;
   a = anticlockwise?-a:a;
   ctx.save();
@@ -73,6 +75,29 @@ Utils.polygon =function(ctx, x, y, radius, sides, startAngle, anticlockwise) {
   ctx.closePath();
   ctx.restore();
 };
+
+Utils.ellipseByCenter = function(ctx, cx, cy, w, h) {
+  Utils.ellipse(ctx, cx - w/2.0, cy - h/2.0, w, h);
+};
+Utils.ellipse = function(ctx, x, y, w, h) {
+  var kappa = 0.5522848,
+      ox = (w / 2) * kappa, // control point offset horizontal
+      oy = (h / 2) * kappa, // control point offset vertical
+      xe = x + w,           // x-end
+      ye = y + h,           // y-end
+      xm = x + w / 2,       // x-middle
+      ym = y + h / 2;       // y-middle
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x, ym);
+  ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
+  ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
+  ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
+  ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+  ctx.restore();
+};
+
 
 
 module.exports = Utils;

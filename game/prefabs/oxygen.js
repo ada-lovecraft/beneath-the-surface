@@ -2,6 +2,7 @@
 var Primative = require('./primative');
 
 var Oxygen = function(game, x, y) {
+
   Primative.call(this, game, x, y, Oxygen.SIZE, Oxygen.COLOR);
   this.anchor.setTo(0.5, 0.5);
 
@@ -31,8 +32,26 @@ Oxygen.ID = 'oxygen';
 
 Oxygen.prototype.onRevived = function() {
   this.rotation = this.game.rnd.realInRange(0, 2 * Math.PI);
-  this.body.velocity.x = this.game.rnd.integerInRange(-50,50);
-  this.body.velocity.y = this.game.rnd.integerInRange(-50,50);
+  this.position = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
+  this.body.velocity.x = this.game.rnd.integerInRange(10,50);
+  this.body.velocity.y = this.game.rnd.integerInRange(10,50);
+  var flip = Math.random();
+  
+  if(flip < 0.25) {
+    //spawn right
+    this.position.x = this.game.width;
+    this.body.velocity.x *= -1;
+  } else if(flip < 0.5) {
+    //spawn left
+    this.position.x = 0;
+  } else if(flip < 0.75) {
+    //spawn top
+    this.position.y = 0
+  } else {
+    //spawn bottom
+    this.position.y = this.game.height;
+    this.body.velocity.y *= -1;
+  }
 };
 
 Oxygen.prototype.createTexture = function() {
@@ -44,10 +63,9 @@ Oxygen.prototype.createTexture = function() {
   this.bmd.refreshBuffer();
 };
 
-Oxygen.drawBody = function(ctx, size, color, lineWidth) {
-  lineWidth = lineWidth || 1;
+Oxygen.drawBody = function(ctx, size) {
   ctx.strokeStyle = '#4e8cff';
-  ctx.fillStyle = color;
+  ctx.fillStyle = Oxygen.COLOR;
 
   ctx.beginPath();
   //create circle outline
