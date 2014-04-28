@@ -10,7 +10,7 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   this.maxHealth = maxHealth || 5;
   this.existsCache = true;
   this.alive = true;
-  this._velocityCache = null;
+  this._velocityCache = new Phaser.Point();
   
   
   var options = {

@@ -30,6 +30,10 @@ var RedBloodCell = function(game, x, y, size, color, maxHealth) {
       viewDistance: 100,
       priority: 1
     },
+    flee: {
+      target: (function() { return this.GameManager.get('enemies');}).bind(this),
+      priority: 1
+    },
     wander: {
       strength: 1.0,
       enabled: true
@@ -95,11 +99,9 @@ RedBloodCell.prototype.oxygenPickup = function(cell, oxygen) {
   }
 };
 
-RedBloodCell.prototype.takeDamage = function(sendToPlayer) {
-  sendToPlayer = typeof sendToPlayer == 'undefined' ? true : sendToPlayer;
-  if(sendToPlayer) {
-    this.GameManager.get('player').damage();
-  }
+RedBloodCell.prototype.takeDamage = function() {
+  
+  this.GameManager.get('player').damage();
   this.health--;
   if (this.health === 0) {
     this.kill();
@@ -112,15 +114,27 @@ RedBloodCell.prototype.takeDamage = function(sendToPlayer) {
       seek: {
         enabled: true
       },
+      flee: {
+        enabled: true,
+      },
+      evade: {
+        enabled: false
+      },
       forces: {
         maxVelocity: 400
-      }
+      },
     };
 
-    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
+    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 500, Phaser.Easing.Linear.NONE, true, 0, 5, true);
     this.panicTween.onComplete.add(function() {
       this.canBeDamaged = true;
       this.automataOptions = {
+        evade: {
+          enabled: true
+        },
+        flee: {
+          enabled: false
+        },
         forces: {
           maxVelocity: 200
         }

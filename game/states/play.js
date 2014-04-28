@@ -207,7 +207,7 @@
             this.levelTagline.y = this.game.height / 2 + 40;
             this.game.add.tween(this.levelLabel).to({x: -this.levelLabel.width}, 5000, Phaser.Easing.Linear.NONE, true);
             this.game.add.tween(this.levelTagline).to({x: -this.levelTagline.width}, 5000, Phaser.Easing.Linear.NONE, true);
-            if(this.enemies.countLiving() > this._levelCache.maxEnemies) {
+            if(this.enemies.countLiving() / 1.5 > this._levelCache.maxEnemies) {
               var diff = this.enemies.countLiving() - this._levelCache.maxEnemies;
               diff *= 2;
               for(var i = 0; i < diff; i++ ){
@@ -271,12 +271,11 @@
       console.log('player hit');
       
       if(this.redBloodCells.countLiving() > 1) {
-        var friendly;
-        while(!friendly) {
-          friendly = this.redBloodCells.getRandom();
-          if(friendly === this.player && friendly.alive === true) {
-            friendly = null;
-          }
+        var friendly = null;
+        var i = 0;
+        while(friendly instanceof RedBloodCell === false || !friendly.exists) {
+          friendly = this.redBloodCells.getAt(i);
+          i++;
         }
         friendly.takeDamage();
       } else {

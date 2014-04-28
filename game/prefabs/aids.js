@@ -18,7 +18,8 @@ var AIDS = function(game, x, y, size) {
       target: GameManager.get('friendlies'),
     },
     forces: {
-      maxVelocity: 300
+      maxVelocity: 1000,
+      maxForce: 100
     }
   };
   
@@ -32,7 +33,7 @@ AIDS.prototype.constructor = AIDS;
 AIDS.SIZE = 32;
 AIDS.COLOR = '#ffba00';
 AIDS.ID = 'aids';
-AIDS.HEMOCHANCE = 0.1;
+AIDS.HEMOCHANCE = 0.0;
 
 AIDS.prototype.update = function() {
   Enemy.prototype.update.call(this, (function() {
@@ -56,7 +57,7 @@ AIDS.drawBody = function(ctx, size, color, lineWidth) {
   var lineColor = '#0b8f2d';
   var x = size/2,
   y = size/2,
-  radius = size/4;
+  radius = size/3;
 
 
   //draw circle
@@ -78,7 +79,7 @@ AIDS.drawBody = function(ctx, size, color, lineWidth) {
   for(var angle = 0; angle < 360; angle += 45) {
     var center = new Phaser.Point(radius * Math.cos(angle * Math.PI / 180) + x, radius * Math.sin(angle * Math.PI / 180) + y);
     ctx.beginPath();
-    ctx.arc(center.x, center.y, radius/4, 0, 2 * Math.PI);
+    ctx.arc(center.x, center.y, radius/3, 0, 2 * Math.PI);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();

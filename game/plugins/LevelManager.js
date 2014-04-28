@@ -76,7 +76,7 @@ var LevelManager  = (function() {
     {
       id: 5,
       tagline: 'Flare Up', 
-      score: 80,
+      score: 0,
       respawnRate: 1500,
       maxEnemies: 10,
       enemyTypes: [
@@ -157,8 +157,8 @@ var LevelManager  = (function() {
       id: 9,
       tagline: 'Full. Blown. AIDS.', 
       score: 200,
-      respawnRate: 2000,
-      maxEnemies: 8,
+      respawnRate: 500,
+      maxEnemies: 10,
       enemyTypes: [
         {
           enemyClass: AIDS,
@@ -170,7 +170,7 @@ var LevelManager  = (function() {
     {
       id: 10,
       tagline: 'Dead Man Walking', 
-      score: 220,
+      score: 210,
       respawnRate: 500,
       maxEnemies: 10,
       enemyTypes: [
@@ -180,7 +180,7 @@ var LevelManager  = (function() {
         },
         {
           enemyClass: CommonCold,
-          id: 'aids'
+          id: 'commonCold'
         },
         {
           enemyClass: Influenza,

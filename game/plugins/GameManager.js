@@ -38,7 +38,7 @@ var GameManager  = (function() {
     }, 
     unpause: function() {
       _currentState = GameStates.ACTIVE;
-      _.each(this.cache, function(item) {
+      _.each(_cache, function(item) {
         if(item instanceof Phaser.Group) {
           item.callAll('restore');
         }

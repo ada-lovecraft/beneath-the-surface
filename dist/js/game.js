@@ -56,7 +56,7 @@ var GameManager  = (function() {
     }, 
     unpause: function() {
       _currentState = GameStates.ACTIVE;
-      _.each(this.cache, function(item) {
+      _.each(_cache, function(item) {
         if(item instanceof Phaser.Group) {
           item.callAll('restore');
         }
@@ -201,7 +201,7 @@ var LevelManager  = (function() {
     {
       id: 5,
       tagline: 'Flare Up', 
-      score: 80,
+      score: 0,
       respawnRate: 1500,
       maxEnemies: 10,
       enemyTypes: [
@@ -282,8 +282,8 @@ var LevelManager  = (function() {
       id: 9,
       tagline: 'Full. Blown. AIDS.', 
       score: 200,
-      respawnRate: 2000,
-      maxEnemies: 8,
+      respawnRate: 500,
+      maxEnemies: 10,
       enemyTypes: [
         {
           enemyClass: AIDS,
@@ -295,7 +295,7 @@ var LevelManager  = (function() {
     {
       id: 10,
       tagline: 'Dead Man Walking', 
-      score: 220,
+      score: 210,
       respawnRate: 500,
       maxEnemies: 10,
       enemyTypes: [
@@ -305,7 +305,7 @@ var LevelManager  = (function() {
         },
         {
           enemyClass: CommonCold,
-          id: 'aids'
+          id: 'commonCold'
         },
         {
           enemyClass: Influenza,
@@ -597,7 +597,8 @@ var AIDS = function(game, x, y, size) {
       target: GameManager.get('friendlies'),
     },
     forces: {
-      maxVelocity: 300
+      maxVelocity: 1000,
+      maxForce: 100
     }
   };
   
@@ -611,7 +612,7 @@ AIDS.prototype.constructor = AIDS;
 AIDS.SIZE = 32;
 AIDS.COLOR = '#ffba00';
 AIDS.ID = 'aids';
-AIDS.HEMOCHANCE = 0.1;
+AIDS.HEMOCHANCE = 0.0;
 
 AIDS.prototype.update = function() {
   Enemy.prototype.update.call(this, (function() {
@@ -635,7 +636,7 @@ AIDS.drawBody = function(ctx, size, color, lineWidth) {
   var lineColor = '#0b8f2d';
   var x = size/2,
   y = size/2,
-  radius = size/4;
+  radius = size/3;
 
 
   //draw circle
@@ -657,7 +658,7 @@ AIDS.drawBody = function(ctx, size, color, lineWidth) {
   for(var angle = 0; angle < 360; angle += 45) {
     var center = new Phaser.Point(radius * Math.cos(angle * Math.PI / 180) + x, radius * Math.sin(angle * Math.PI / 180) + y);
     ctx.beginPath();
-    ctx.arc(center.x, center.y, radius/4, 0, 2 * Math.PI);
+    ctx.arc(center.x, center.y, radius/3, 0, 2 * Math.PI);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -1412,7 +1413,7 @@ var Cell = function(game, x, y, size, color, maxHealth) {
   this.maxHealth = maxHealth || 5;
   this.existsCache = true;
   this.alive = true;
-  this._velocityCache = null;
+  this._velocityCache = new Phaser.Point();
   
   
   var options = {
@@ -2489,6 +2490,10 @@ var RedBloodCell = function(game, x, y, size, color, maxHealth) {
       viewDistance: 100,
       priority: 1
     },
+    flee: {
+      target: (function() { return this.GameManager.get('enemies');}).bind(this),
+      priority: 1
+    },
     wander: {
       strength: 1.0,
       enabled: true
@@ -2554,11 +2559,9 @@ RedBloodCell.prototype.oxygenPickup = function(cell, oxygen) {
   }
 };
 
-RedBloodCell.prototype.takeDamage = function(sendToPlayer) {
-  sendToPlayer = typeof sendToPlayer == 'undefined' ? true : sendToPlayer;
-  if(sendToPlayer) {
-    this.GameManager.get('player').damage();
-  }
+RedBloodCell.prototype.takeDamage = function() {
+  
+  this.GameManager.get('player').damage();
   this.health--;
   if (this.health === 0) {
     this.kill();
@@ -2571,15 +2574,27 @@ RedBloodCell.prototype.takeDamage = function(sendToPlayer) {
       seek: {
         enabled: true
       },
+      flee: {
+        enabled: true,
+      },
+      evade: {
+        enabled: false
+      },
       forces: {
         maxVelocity: 400
-      }
+      },
     };
 
-    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 300, Phaser.Easing.Linear.NONE, true, 0, 5, true);
+    this.panicTween = this.game.add.tween(this).to({tint: 0x333333 }, 500, Phaser.Easing.Linear.NONE, true, 0, 5, true);
     this.panicTween.onComplete.add(function() {
       this.canBeDamaged = true;
       this.automataOptions = {
+        evade: {
+          enabled: true
+        },
+        flee: {
+          enabled: false
+        },
         forces: {
           maxVelocity: 200
         }
@@ -2973,7 +2988,7 @@ module.exports = Menu;
             this.levelTagline.y = this.game.height / 2 + 40;
             this.game.add.tween(this.levelLabel).to({x: -this.levelLabel.width}, 5000, Phaser.Easing.Linear.NONE, true);
             this.game.add.tween(this.levelTagline).to({x: -this.levelTagline.width}, 5000, Phaser.Easing.Linear.NONE, true);
-            if(this.enemies.countLiving() > this._levelCache.maxEnemies) {
+            if(this.enemies.countLiving() / 1.5 > this._levelCache.maxEnemies) {
               var diff = this.enemies.countLiving() - this._levelCache.maxEnemies;
               diff *= 2;
               for(var i = 0; i < diff; i++ ){
@@ -3037,12 +3052,11 @@ module.exports = Menu;
       console.log('player hit');
       
       if(this.redBloodCells.countLiving() > 1) {
-        var friendly;
-        while(!friendly) {
-          friendly = this.redBloodCells.getRandom();
-          if(friendly === this.player && friendly.alive === true) {
-            friendly = null;
-          }
+        var friendly = null;
+        var i = 0;
+        while(friendly instanceof RedBloodCell === false || !friendly.exists) {
+          friendly = this.redBloodCells.getAt(i);
+          i++;
         }
         friendly.takeDamage();
       } else {
