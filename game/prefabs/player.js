@@ -4,7 +4,7 @@ var CrossHair = require('./crosshair');
 var Primative = require('./primative');
 
 var Player = function(game, x, y) {
-  this.maxHealth = 1;
+  this.maxHealth = 16;
   Cell.call(this, game, x, y, Player.SIZE, Player.COLOR, this.maxHealth);
   this.automataOptions = {
     enabled: false
@@ -34,6 +34,7 @@ var Player = function(game, x, y) {
 
   this.fireTimer = 0;
   this.fireRate = 200;
+  this.alive = true;
 };
 
 Player.SIZE = 32;

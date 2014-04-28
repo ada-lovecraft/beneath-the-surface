@@ -12,7 +12,7 @@ var SwineFlu = function(game, x, y) {
 
   this.automataOptions = {
     forces: {
-      maxVelocity: 150
+      maxVelocity: 200
     },
     wander: {
       enabled: true 
@@ -21,6 +21,10 @@ var SwineFlu = function(game, x, y) {
       enabled: true,
       target: GameManager.get('friendlies'),
       viewDistance: this.game.width / 4
+    },
+    flocking: {
+      enabled: false,
+      flock: GameManager.get('swine')
     },
     game: {
       debug: false

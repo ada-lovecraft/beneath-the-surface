@@ -69,7 +69,7 @@ Oxygen.drawBody = function(ctx, size) {
 
   ctx.beginPath();
   //create circle outline
-  ctx.arc(size / 2 , size / 2, size/2 - size / 8, 0, 2 * Math.PI, false);
+  ctx.arc(size / 2 , size / 2, size/2 - ctx.lineWidth, 0, 2 * Math.PI, false);
   ctx.lineWidth = 1;
   ctx.fill();
   ctx.stroke();

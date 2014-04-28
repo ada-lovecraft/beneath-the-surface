@@ -4,7 +4,6 @@
   var RedBloodCell = require('../prefabs/redBloodCell');
   var Hemoglobin = require('../prefabs/hemoglobin');
   var Oxygen = require('../prefabs/oxygen');
-  var Background = require('../prefabs/background');
   var IntroManager = require('../plugins/IntroManager');
   var LevelManager = require('../plugins/LevelManager');
   var GameManager = require('../plugins/GameManager');
@@ -13,10 +12,11 @@
   Play.prototype = {
     create: function() {
       // inits
+      GameManager.clearCache();
       this.score = 0;
       this.hemoCount = 0;
       this.hemoMax = 10;
-      this.startingFriendlies = 3;
+      this.maxBloodcells = 5;
       this.level = LevelManager.get(this.score);
       this._levelCache = null;
       this.introManager = new IntroManager(this.game);
@@ -57,32 +57,39 @@
       this.hemoTracker.bar.anchor.setTo(0.5, 0.5);
       this.hemoTracker.bar.alpha = 0.5;
       this.game.add.existing(this.hemoTracker.bar);
+      this.hemoTracker.bar.visible = false;
 
       
 
       // labels
       var style = { font: '18px Audiowide', fill: '#ffffff', align: 'center', stroke: '#333', strokeThickness: 3};
-      var hemoLabel = this.game.add.text(this.hemoTracker.bar.x, this.hemoTracker.bar.y, 'HEMOGLOBINS', {fill:'#761397', font:'bold 14px Audiowide'});
-      hemoLabel.anchor.setTo(0.5, 0.5);
+      this.hemoLabel = this.game.add.text(this.hemoTracker.bar.x, this.hemoTracker.bar.y, 'HEMOGLOBINS', {fill:'#761397', font:'bold 14px Audiowide'});
+      this.hemoLabel.anchor.setTo(0.5, 0.5);
+      this.hemoLabel.visible = false;
 
-      var levelStyle = { font: '36px Audiowide', fill: '#ffffff', align: 'center', stroke: '#333', strokeThickness: 3};
-      this.levelLabel = this.game.add.text(this.game.width, 0, 'LEVEL ' + this.level.id, levelStyle);
-      this.levelLabel.alpha = 0.5;
+      
 
       this.scoreHUD = this.gamehud.addText(10, 10, 'Score: ', style, 'score', this);
       this.game.add.existing(this.scoreHUD.text);
 
+      
 
+      var levelStyle = { font: '36px Audiowide', fill: '#ffffff', align: 'center', stroke: '#333', strokeThickness: 3};
+      var taglineStyle = { font: '24px Audiowide', fill: '#ffffff', align: 'center', stroke: '#333', strokeThickness: 3};
+      this.levelLabel = this.game.add.text(this.game.width, 0, 'LEVEL: ' + this.level.id, levelStyle);
+      this.levelLabel.alpha = 0.5;
+      this.levelTagline = this.game.add.text(this.game.width, 0, '' + this.level.id, taglineStyle);
+      this.levelTagline.alpha = 0.5;
 
       this.pausedText = this.game.add.group();
-      var pausedLabel = this.game.add.text(this.game.width/2, this.game.height/2, 'PAUSED', {
+      var pausedLabel = this.game.add.text(this.game.width/2, this.game.height * 0.25, 'PAUSED', {
         fill: 'white', 
         stroke:'black', 
         font:'bold 24px Audiowide', 
         strokeThickness: 3
       });
       pausedLabel.anchor.setTo(0.5);
-      var continueLabel = this.game.add.text(this.game.width/2, this.game.height/2 + 30, 'Press Space to continue', {
+      var continueLabel = this.game.add.text(this.game.width/2, this.game.height * 0.25 + 30, 'Press Space to continue', {
         fill: 'white', 
         stroke:'black', 
         font:'12px Audiowide',
@@ -107,6 +114,7 @@
       this.hemoglobins = this.game.add.group();
       this.redBloodCells = this.game.add.group();
       this.intros = this.game.add.group();
+      this.swine = this.game.add.group();
 
       this.redBloodCells.add(this.player);
 
@@ -116,20 +124,22 @@
       GameManager.add('enemies', this.enemies);
       GameManager.add('friendlies', this.redBloodCells);
       GameManager.add('oxygen', this.oxygen);
-      
+      GameManager.add('swine', this.swine);
       // init red bloodcells
       var i;
-      for(i = 0; i < this.startingFriendlies; i++) {
+      for(i = 0; i < this.maxBloodcells; i++) {
         var friendly = new RedBloodCell(this.game, this.game.world.randomX, this.game.world.randomY, 16);
         this.redBloodCells.add(friendly);
       }
 
       // introduction queue
+      
+      this.introManager.queue('underMySkin');
       this.introManager.queue('whiteBloodCell');
       this.introManager.queue('redBloodCell');
       this.introManager.queue('oxygen');
-      this.introManager.queue('hemo');
       this.introManager.queue('commonCold');
+      
 
       // sounds
       this.pickupSound = this.game.add.audio('hemoglobinPickup');
@@ -165,7 +175,7 @@
               }
             });
             if (!reanimated) {
-              reanimated = new targetEnemy.enemyClass(this.game,0,0, 16);
+              reanimated = new targetEnemy.enemyClass(this.game,0,0, targetEnemy.enemyClass.SIZE);
               this.enemies.add(reanimated);
             }
 
@@ -189,15 +199,27 @@
           // show level label on new level
           if(this.level !== this._levelCache) {
             this.levelLabel.text = 'LEVEL: ' + this.level.id;
+            this.levelTagline.text = this.level.tagline;
             this._levelCache = this.level;
             this.levelLabel.x = this.game.width;
-            this.levelLabel.y = this.game.rnd.integerInRange(100,this.game.height - 100);
+            this.levelLabel.y = this.game.height / 2;
+            this.levelTagline.x = this.game.width;
+            this.levelTagline.y = this.game.height / 2 + 40;
             this.game.add.tween(this.levelLabel).to({x: -this.levelLabel.width}, 5000, Phaser.Easing.Linear.NONE, true);
+            this.game.add.tween(this.levelTagline).to({x: -this.levelTagline.width}, 5000, Phaser.Easing.Linear.NONE, true);
+            if(this.enemies.countLiving() > this._levelCache.maxEnemies) {
+              var diff = this.enemies.countLiving() - this._levelCache.maxEnemies;
+              diff *= 2;
+              for(var i = 0; i < diff; i++ ){
+                this.enemies.getRandom().kill();
+              }
+            }
           }
 
         // collisions  
         this.game.physics.arcade.overlap(this.player.bullets, this.enemies, this.enemyHit, null, this);
         this.game.physics.arcade.overlap(this.player, this.hemoglobins, this.hemoglobinHit, null, this);
+        this.game.physics.arcade.overlap(this.player, this.enemies, this.playerHit, null, this);
       }
     },
     enemyHit: function(bullet, enemy) {
@@ -207,13 +229,16 @@
         enemy.kill();
         this.score++;
         this.level = LevelManager.get(this.score);
-        if(this.game.rnd.realInRange(0,1) < enemy.constructor.HEMOCHANCE) {
+        if(this.redBloodCells.countLiving() - 1 < this.maxBloodcells && this.game.rnd.realInRange(0,1) < enemy.constructor.HEMOCHANCE) {
+          this.hemoTracker.bar.visible = true;
+          this.hemoLabel.visible = true;
           var hemo = this.hemoglobins.getFirstExists(false);
           if(!hemo) {
             hemo = new Hemoglobin(this.game, 0,0);
             this.hemoglobins.add(hemo);
           }
           this.respawnTimer = this.game.time.now + this.level.respawnRate;
+          this.introManager.queue('hemo');
           hemo.reset(enemy.x, enemy.y);
           hemo.revive();
         }
@@ -222,20 +247,41 @@
       }
     },
     hemoglobinHit: function(player, hemo) {
-      hemo.kill();
-      this.pickupSound.play();
-      this.hemoCount++;
-      if(this.hemoCount === this.hemoMax) {
-        this.hemoCount = 0;
-        var bloodCell = this.redBloodCells.getFirstExists(false);
-        if(!bloodCell) {
-          bloodCell = new RedBloodCell(this.game, 0,0);
-          this.redBloodCells.add(bloodCell);
+      if(this.redBloodCells.countLiving() - 1 < this.maxBloodcells) {
+        hemo.kill();
+        this.pickupSound.play();
+        this.hemoCount++;
+        if(this.hemoCount === this.hemoMax) {
+          this.hemoCount = 0;
+          var bloodCell = this.redBloodCells.getFirstExists(false);
+          if(!bloodCell) {
+            bloodCell = new RedBloodCell(this.game, 0,0);
+            this.redBloodCells.add(bloodCell);
+          }
+          var spawnLocation = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
+          bloodCell.reset(spawnLocation.x, spawnLocation.y, bloodCell.maxHealth);
+          bloodCell.revive();
+          player.health += bloodCell.health;
+          
         }
-        var spawnLocation = new Phaser.Point(this.game.world.randomX, this.game.world.randomY);
-        bloodCell.reset(spawnLocation.x, spawnLocation.y, bloodCell.maxHealth);
-        bloodCell.revive();
-        
+      }
+    },
+    playerHit: function(player, enemy) {
+      enemy.kill();
+      console.log('player hit');
+      
+      if(this.redBloodCells.countLiving() > 1) {
+        var friendly;
+        while(!friendly) {
+          friendly = this.redBloodCells.getRandom();
+          if(friendly === this.player && friendly.alive === true) {
+            friendly = null;
+          }
+        }
+        friendly.takeDamage();
+      } else {
+        player.kill();
+        this.introManager.queue('death');
       }
     },
     togglePause: function() {

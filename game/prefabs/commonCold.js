@@ -54,10 +54,8 @@ CommonCold.drawBody = function(ctx, size) {
   ctx.strokeStyle = lineColor;
   
   ctx.beginPath();
-  Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
+  Utils.polygon(ctx, size/2, size/2, size/2 - ctx.lineWidth,6,-Math.PI/2);
   ctx.fill();
-  ctx.beginPath();
-  Utils.polygon(ctx, size/2, size/2, size/2 ,6,-Math.PI/2);
   ctx.stroke();
 };
 

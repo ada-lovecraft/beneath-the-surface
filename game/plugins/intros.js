@@ -10,6 +10,19 @@ var Hemoglobin = require('../prefabs/hemoglobin');
 var CommonCold = require('../prefabs/commonCold');
 var Influenza = require('../prefabs/influenza');
 var SwineFlu = require('../prefabs/swineFlu');
+var HPV = require('../prefabs/hpv');
+var AIDS = require('../prefabs/aids');
+var Death = require('../prefabs/death');
+
+
+exports.underMySkin = {
+  id: 'underMySkin',
+  name: 'Under My Skin',
+  tagline: 'This best most awesome #LD48 entry ever.',
+  description: 'You\'re a white blood cell trying to protect your host from viral invasions. You can\'t win. The game just goes on until you die.',
+  mechanics: 'by @codevinsky',
+  color: '#e7e871'
+};
 // friendlies
 exports.whiteBloodCell = {
   id: 'whiteBloodCell',
@@ -26,7 +39,7 @@ exports.redBloodCell = {
   name: 'The Red Blood Cell',
   tagline: 'Great when they are in your body.\nGross when they aren\'t.',
   description: 'These are your flock. Foreign bodies will try to eat red blood cells, so you best protect them. They eat oxygen and try to run away from attackers',
-  mechanics: 'If they all die, so do you.',
+  mechanics: 'If you get hit, a random one takes damage. If they all die, so do you.',
   color: RedBloodCell.COLOR,
   spriteClass: RedBloodCell
 };
@@ -83,5 +96,35 @@ exports.swineFlu = {
   spriteClass: SwineFlu
 };
 
+exports.hpv = {
+  id: 'hpv',
+  name: 'HPV',
+  tagline: 'It\'s ok, basically everyone has it',
+  description: 'Dumb but hard to get rid of. It bounces around from place to place until one day it becomes a problem.',
+  mechanics: 'Multiplies when killed.',
+  color: HPV.COLOR,
+  spriteClass: HPV
+};
+
+exports.aids = {
+  id: 'aids',
+  name: 'AIDS',
+  tagline: 'Yeah... I went there.',
+  description: 'Once it gets a hold, it never lets go.',
+  mechanics: 'It chases everything and kills it. Never drops hemoglobin.',
+  color: AIDS.COLOR,
+  spriteClass: AIDS
+};
+
+
+exports.death = {
+  id: 'death',
+  name: 'DEATH',
+  tagline: 'It was inevitable.',
+  description: 'You\'re dead. You are no longer living. You have no more life.',
+  mechanics: 'Game Over, man',
+  color: 'white',
+  spriteClass: Death
+};
 
 

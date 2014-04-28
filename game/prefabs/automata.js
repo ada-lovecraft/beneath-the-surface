@@ -77,12 +77,17 @@ Automata.prototype.seek = function(target, viewDistance, isSeeking) {
 
   viewDistance = viewDistance || this.options.seek.viewDistance;
 
+    if(target instanceof Function) {
+      target = target();
+    }
   
     if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
 
     if(!!target) {
+      
+
       if (target instanceof Phaser.Point) {
         tpos = target;
       } else {
@@ -122,6 +127,9 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
   var steer = new Phaser.Point(), 
       desired;
   if(!!target) {
+    if(target instanceof Function) {
+      target = target();
+    }
     if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
@@ -145,7 +153,9 @@ Automata.prototype.pursue = function(target, viewDistance) {
   var steer = new Phaser.Point(),
       distance;
   if(!!target) {
-
+    if(target instanceof Function) {
+      target = target();
+    }
     if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
@@ -175,7 +185,9 @@ Automata.prototype.evade = function(target, viewDistance) {
   }
 
   if(!!target) {
-
+    if(target instanceof Function) {
+      target = target();
+    }
     if(target instanceof Phaser.Group || target instanceof Array) {
       targets = this.getAllInRange(target, viewDistance);
     } else {
@@ -473,7 +485,7 @@ Automata.defaultOptions = Object.freeze({
       strength: 1.0,
     },
     flock: null,
-    priority: 3,
+    priority: 1,
     method: Automata.prototype.flock
   },
   seek: {

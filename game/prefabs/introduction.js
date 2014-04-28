@@ -47,8 +47,10 @@ var Introduction = function(game,  config) {
 
   var closeText = this.game.add.text(backdrop.x, backdrop.y + backdrop.height / 2 - 20, 'Spacebar to close', closeStyle);
   closeText.anchor.setTo(0.5);
-
-  config.spriteClass.drawBody(this.spriteBMD.ctx, 128, config.color,1);
+  
+  if(config.spriteClass) {
+    config.spriteClass.drawBody(this.spriteBMD.ctx, 128, config.color,1);
+  }
 
   this.spriteBMD.render();
   this.spriteBMD.refreshBuffer();

@@ -4,7 +4,7 @@ var Intros = require('./intros');
 var IntroManager = function(game) {
   this.game = game;
   this.introQ = [];
-  this.storage = JSON.parse(localStorage.getItem('intros')) || {};
+  this.storage = {}
 };
 
 IntroManager.prototype.getNext = function() {
@@ -18,7 +18,6 @@ IntroManager.prototype.getNext = function() {
     this.storage[id] = {};
   }
   this.storage[id].show = false;
-  localStorage.setItem('intros', JSON.stringify(this.storage));
   intro = this.get(id);
   return new Introduction(this.game, intro);
 };

@@ -3,7 +3,7 @@ var Cell = require('./cell');
 
 
 var RedBloodCell = function(game, x, y, size, color, maxHealth) {
-  var GameManager = require('../plugins/GameManager');
+  this.GameManager = require('../plugins/GameManager');
   color = color || RedBloodCell.COLOR;
   size = size || RedBloodCell.SIZE;
   maxHealth = maxHealth || 3;
@@ -18,17 +18,17 @@ var RedBloodCell = function(game, x, y, size, color, maxHealth) {
 
   this.automataOptions = {
     seek: {
-          target: this.oxygen
-        },
+      target: (function() { return this.GameManager.get('oxygen'); }).bind(this),
+      priority: 2,
+      strength: 1.0,
+      viewDistance: this.game.width
+    },
     evade: {
       enabled: true,
-      target: GameManager.get('enemies'),
+      target: (function() { return this.GameManager.get('enemies');}).bind(this),
       strength: 1.0,
       viewDistance: 100,
-    },
-    flee:{
-      target: GameManager.get('enemies'),
-      strength: 1.0
+      priority: 1
     },
     wander: {
       strength: 1.0,
@@ -39,12 +39,13 @@ var RedBloodCell = function(game, x, y, size, color, maxHealth) {
       wrapWorldBounds: false
     },
     forces: {
-      maxVelocity: 150
+      maxVelocity: 200
     }
   };
 
 
   this.events.onRevived.add(this.onRevived, this);
+  this.alive = true;
 
 };
 
@@ -70,24 +71,35 @@ RedBloodCell.prototype.update = function() {
         }
       };
     }
-    if(this.options.evade.target && this.canBeDamaged) {
-      this.game.physics.arcade.overlap(this, this.options.evade.target, this.takeDamage, null, this);  
+    if(this.canBeDamaged) {
+      this.game.physics.arcade.overlap(this, this.GameManager.get('enemies'), this.takeDamage, null, this);  
     }
-    this.game.physics.arcade.overlap(this, this.options.seek.target, this.oxygenPickup, null, this);
+    this.game.physics.arcade.overlap(this, this.GameManager.get('oxygen'), this.oxygenPickup, null, this);
   }).bind(this));
 
 };
 
-RedBloodCell.prototype.oxygenPickup = function(RedBloodCell, oxygen) {
-  if(RedBloodCell.health < RedBloodCell.maxHealth) {
+RedBloodCell.prototype.oxygenPickup = function(cell, oxygen) {
+  if(this.health < this.maxHealth) {
     oxygen.kill();
-    RedBloodCell.health++;
+    this.health++;
     this.oxygenSound.play();
+    this.GameManager.get('player').health++;
+  }
+  if(this.health === this.maxHealth) {
+    this.automataOptions = {
+      seek: {
+        enabled: false
+      }
+    };
   }
 };
 
-RedBloodCell.prototype.takeDamage = function() {
-  
+RedBloodCell.prototype.takeDamage = function(sendToPlayer) {
+  sendToPlayer = typeof sendToPlayer == 'undefined' ? true : sendToPlayer;
+  if(sendToPlayer) {
+    this.GameManager.get('player').damage();
+  }
   this.health--;
   if (this.health === 0) {
     this.kill();
@@ -97,14 +109,11 @@ RedBloodCell.prototype.takeDamage = function() {
     this.ouchSound.play();
     this.canBeDamaged = false;
     this.automataOptions = {
-      evade: {
-        enabled: false
-      },
-      flee: {
+      seek: {
         enabled: true
       },
       forces: {
-        maxVelocity: 300
+        maxVelocity: 400
       }
     };
 
@@ -112,14 +121,8 @@ RedBloodCell.prototype.takeDamage = function() {
     this.panicTween.onComplete.add(function() {
       this.canBeDamaged = true;
       this.automataOptions = {
-        evade: {
-          enabled: true
-        },
-        flee: {
-          enabled: false
-        },
         forces: {
-          maxVelocity: 100
+          maxVelocity: 200
         }
       };
     }, this);
@@ -136,7 +139,7 @@ RedBloodCell.drawBody = function(ctx, size) {
   ctx.fillStyle = color;
   ctx.strokeStyle = lineColor;
   ctx.beginPath();
-  ctx.arc(size/2, size/2, size/2.25, 0, Math.PI * 2);
+  ctx.arc(size/2, size/2, size/2 - ctx.lineWidth, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
   ctx.closePath();

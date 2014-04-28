@@ -50,6 +50,10 @@ var GameManager  = (function() {
     getCurrentState: function() {
       return _currentState;
     },
+    clearCache: function() {
+      _cache = null;
+      _cache = {};
+    },
     states: GameStates
   };
 })();

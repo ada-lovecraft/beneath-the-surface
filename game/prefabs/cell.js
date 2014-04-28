@@ -1,5 +1,4 @@
 'use strict';
-var Primative = require('./primative');
 var Automata = require('./automata');
 var CellParticle = require('./cellParticle');
 var cellCounter = 0;
@@ -90,8 +89,10 @@ Cell.prototype.update = function(next) {
 
 Cell.prototype.onKilled = function() {
   this.healthHUD.bar.kill();
-  this.emitter.start(true, 500, 0, 10);
-  this.emitter.position = this.position;
+  this.emitter.x = this.x;
+  this.emitter.y = this.y;
+  this.emitter.start(true, 500, 0, this.size);
+  
   this.existsCache = false;
   if(this.options.game.debug) {
     Cell.debug.destroyLabels(this);
@@ -106,10 +107,12 @@ Cell.prototype.restore = function() {
 Cell.prototype.damage = function(amount) {
   amount = amount || 1;
   this.health -= amount;
+  if(this.health === 0) {
+    this.kill();
+  }
 };
 
 Cell.prototype.onRevived = function() {
-  console.log(this.constructor.ID, this.maxHealth);
   if(this.maxHealth > 1) {
 
     this.healthHUD.bar.revive();
