@@ -100,7 +100,7 @@ Cell.prototype.onKilled = function() {
   }
 };
 
-Cell.prototype.restore = function() {
+Cell.prototype.restoreVelocity = function() {
   this.body.velocity = this._velocityCache;
 };
 

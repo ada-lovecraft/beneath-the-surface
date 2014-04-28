@@ -23,6 +23,7 @@ window.onload = function () {
 
 var GameManager  = (function() {
   var _cache = {};
+  var Cell = require('../prefabs/cell'); 
   var RedBloodCell = require('../prefabs/redBloodCell');
   var Player = require('../prefabs/player');
   var Hemoglobin = require('../prefabs/hemoglobin');
@@ -41,6 +42,9 @@ var GameManager  = (function() {
     get: function(id) {
       return _cache[id];
     },
+    set: function(id, obj) {
+     _cache[id] = obj; 
+    },
     add: function(id, obj) {
       if(!_cache.hasOwnProperty(id)) {
         _cache[id] = obj;
@@ -58,15 +62,24 @@ var GameManager  = (function() {
       _currentState = GameStates.ACTIVE;
       _.each(_cache, function(item) {
         if(item instanceof Phaser.Group) {
-          item.callAll('restore');
+          GameManager.restoreGroup(item);
         }
         else {
-          item.restore();
+          if(item.restoreVelocity) {
+            item.restoreVelocity();
+          }
         }
       });
     },
     getCurrentState: function() {
       return _currentState;
+    },
+    restoreGroup: function(group) {
+      group.forEachExists(function(item) {
+        if(item.restoreVelocity) {
+          item.restoreVelocity();
+        }
+      });
     },
     clearCache: function() {
       _cache = null;
@@ -77,7 +90,7 @@ var GameManager  = (function() {
 })();
 
 module.exports = GameManager;
-},{"../prefabs/commonCold":11,"../prefabs/hemoglobin":15,"../prefabs/oxygen":19,"../prefabs/player":20,"../prefabs/redBloodCell":22}],3:[function(require,module,exports){
+},{"../prefabs/cell":9,"../prefabs/commonCold":11,"../prefabs/hemoglobin":15,"../prefabs/oxygen":19,"../prefabs/player":20,"../prefabs/redBloodCell":22}],3:[function(require,module,exports){
 'use strict';
 var Introduction = require('../prefabs/introduction');
 var Intros = require('./intros');
@@ -136,7 +149,6 @@ var LevelManager  = (function() {
     {
       id: 1,
       tagline: 'I\'ve got you, under my skin...',
-      score: 0,
       respawnRate: 500,
       maxEnemies: 5,
       enemyTypes: [
@@ -150,7 +162,6 @@ var LevelManager  = (function() {
     {
       id: 2,
       tagline: 'Flu Shots', 
-      score: 10,
       respawnRate: 300,
       maxEnemies: 20,
       enemyTypes: [
@@ -168,9 +179,8 @@ var LevelManager  = (function() {
     {
       id: 3,
       tagline: 'Gettin\' Busy', 
-      score: 25,
       respawnRate: 300,
-      maxEnemies: 30,
+      maxEnemies: 10,
       enemyTypes: [
         {
           enemyClass: HPV,
@@ -182,8 +192,7 @@ var LevelManager  = (function() {
     {
       id: 4,
       tagline: 'Flu Season', 
-      score: 50,
-      respawnRate: 300,
+      respawnRate: 1000,
       maxEnemies: 20,
       enemyTypes: [
         {
@@ -201,9 +210,8 @@ var LevelManager  = (function() {
     {
       id: 5,
       tagline: 'Flare Up', 
-      score: 80,
-      respawnRate: 200,
-      maxEnemies: 60,
+      respawnRate: 1000,
+      maxEnemies: 10,
       enemyTypes: [
         {
           enemyClass: HPV,
@@ -215,8 +223,7 @@ var LevelManager  = (function() {
     {
       id: 6,
       tagline: 'Infection', 
-      score: 120,
-      respawnRate: 300,
+      respawnRate: 1200,
       maxEnemies: 30,
       enemyTypes: [
         {
@@ -232,40 +239,34 @@ var LevelManager  = (function() {
           id: 'commonCold'
         },
       ],
-      oxygenRate: 1000
+      oxygenRate: 400
     },
     {
       id: 7,
       tagline: 'Philadelphia', 
-      score: 150,
-      respawnRate: 300,
+      respawnRate: 500,
       maxEnemies: 10,
       enemyTypes: [
         {
           enemyClass: AIDS,
           id: 'aids'
-        },
-        {
-          enemyClass: CommonCold,
-          id: 'commonCold'
-        },
+        } 
       ],
       oxygenRate: 500
     },
     {
       id: 8,
       tagline: 'Epidemic', 
-      score: 170,
-      respawnRate: 200,
+      respawnRate: 1200,
       maxEnemies: 20,
-      enemyTypes: [
+      enemyTypes: [ 
         {
           enemyClass: CommonCold,
           id: 'aids'
         },
         {
           enemyClass: Influenza,
-          id: 'flu'
+          id: 'influenza'
         },
         {
           enemyClass: SwineFlu,
@@ -281,9 +282,8 @@ var LevelManager  = (function() {
     {
       id: 9,
       tagline: 'Full. Blown. AIDS.', 
-      score: 200,
-      respawnRate: 500,
-      maxEnemies: 20,
+      respawnRate: 200,
+      maxEnemies: 10,
       enemyTypes: [
         {
           enemyClass: AIDS,
@@ -295,9 +295,8 @@ var LevelManager  = (function() {
     {
       id: 10,
       tagline: 'Dead Man Walking', 
-      score: 210,
-      respawnRate: 200,
-      maxEnemies: 30,
+      respawnRate: 1000,
+      maxEnemies: 10000,
       enemyTypes: [
         {
           enemyClass: AIDS,
@@ -309,7 +308,7 @@ var LevelManager  = (function() {
         },
         {
           enemyClass: Influenza,
-          id: 'flu'
+          id: 'influenza'
         },
         {
           enemyClass: SwineFlu,
@@ -325,11 +324,9 @@ var LevelManager  = (function() {
 
   ];
   return { 
-    get: function(score) {
-      var possible = _.filter(_levels, function(level) {
-        return level.score <= score;
-      });
-      return _.last(possible);
+    get: function(id) {
+      var possible = _.find(_levels, {'id': id});
+      return possible;
 
     },
     levels: function() {
@@ -1504,7 +1501,7 @@ Cell.prototype.onKilled = function() {
   }
 };
 
-Cell.prototype.restore = function() {
+Cell.prototype.restoreVelocity = function() {
   this.body.velocity = this._velocityCache;
 };
 
@@ -1857,6 +1854,7 @@ HPV.HEMOCHANCE = 0.5;
 
 HPV.prototype.update = function() {
   Enemy.prototype.update.call(this, (function() {
+    this._velocityCache = this.body.velocity;
     this.rotation += 0.4;
   }).bind(this));
   // write your prefab's specific update code here
@@ -2291,6 +2289,7 @@ var CrossHair = require('./crosshair');
 var Primative = require('./primative');
 
 var Player = function(game, x, y) {
+  this.GameManager = require('../plugins/GameManager');
   this.maxHealth = 16;
   Cell.call(this, game, x, y, Player.SIZE, Player.COLOR, this.maxHealth);
   this.automataOptions = {
@@ -2359,7 +2358,7 @@ Player.prototype.update = function() {
 
 Player.prototype.fire = function() {
   if(this.fireTimer < this.game.time.now) {
-    this.shootSound.play();
+    this.shootSound.play('',0, this.GameManager.get('mute'));
     var bullet = this.bullets.getFirstExists(false);
 
     if (!bullet) {
@@ -2412,7 +2411,7 @@ Player.drawBody = function(ctx, size) {
 
 module.exports = Player;
 
-},{"./cell":9,"./crosshair":12,"./primative":21}],21:[function(require,module,exports){
+},{"../plugins/GameManager":2,"./cell":9,"./crosshair":12,"./primative":21}],21:[function(require,module,exports){
 'use strict';
 var Primative = function(game, x, y, size, color ) {
   x = x || 0;
@@ -2799,10 +2798,12 @@ module.exports = Menu;
       this.hemoCount = 0;
       this.hemoMax = 10;
       this.maxBloodcells = 5;
-      this.level = LevelManager.get(this.score);
+      this.levelCount = 1;
+      this.level = LevelManager.get(this.levelCount);
       this._levelCache = null;
       this.introManager = new IntroManager(this.game);
       this.game.physics.startSystem(Phaser.Physics.ARCADE);
+      GameManager.add('volume',1);
 
       
 
@@ -2929,6 +2930,10 @@ module.exports = Menu;
       // controls
       this.pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
       this.pauseKey.onDown.add(this.togglePause, this);
+
+      this.pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.M);
+      this.pauseKey.onDown.add(this.toggleMute, this);
+      
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
 
     },
@@ -2947,7 +2952,7 @@ module.exports = Menu;
         this.pausedText.visible = false;
           
           // spawn enemy
-          if(this.respawnTimer < this.game.time.now && this.enemies.countLiving() < this.level.maxEnemies) {
+          if(this.respawnTimer < this.game.time.now && this.enemies.length < this.level.maxEnemies) {
             var reanimated = null;
             var targetEnemy = _.sample(this.level.enemyTypes);
             this.enemies.forEachDead(function(enemy) {
@@ -2989,7 +2994,7 @@ module.exports = Menu;
             this.levelTagline.y = this.game.height / 2 + 40;
             this.game.add.tween(this.levelLabel).to({x: -this.levelLabel.width}, 5000, Phaser.Easing.Linear.NONE, true);
             this.game.add.tween(this.levelTagline).to({x: -this.levelTagline.width}, 5000, Phaser.Easing.Linear.NONE, true);
-            this.enemies.removeAll();
+            
           }
 
         // collisions  
@@ -3004,7 +3009,12 @@ module.exports = Menu;
       if(enemy.health === 0) {
         enemy.kill();
         this.score++;
-        this.level = LevelManager.get(this.score);
+        //increase level
+        if(this.level.maxEnemies <= this.enemies.countDead() && this.enemies.countLiving() === 0) {
+          this.enemies.removeAll();
+          this.levelCount++;
+          this.level = LevelManager.get(this.levelCount);
+        }
         if(this.redBloodCells.countLiving() - 1 < this.maxBloodcells && this.game.rnd.realInRange(0,1) < enemy.constructor.HEMOCHANCE) {
           this.hemoTracker.bar.visible = true;
           this.hemoLabel.visible = true;
@@ -3025,7 +3035,7 @@ module.exports = Menu;
     hemoglobinHit: function(player, hemo) {
       if(this.redBloodCells.countLiving() - 1 < this.maxBloodcells) {
         hemo.kill();
-        this.pickupSound.play();
+        this.pickupSound.play('',0,GameManager.get('mute'));
         this.hemoCount++;
         if(this.hemoCount === this.hemoMax) {
           this.hemoCount = 0;
@@ -3067,6 +3077,9 @@ module.exports = Menu;
           GameManager.unpause();
         }
       }
+    },
+    toggleMute: function() {
+      GameManager.set('mute', Number(!GameManager.get('mute')));
     }
   };
   

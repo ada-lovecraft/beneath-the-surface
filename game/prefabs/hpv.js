@@ -28,6 +28,7 @@ HPV.HEMOCHANCE = 0.5;
 
 HPV.prototype.update = function() {
   Enemy.prototype.update.call(this, (function() {
+    this._velocityCache = this.body.velocity;
     this.rotation += 0.4;
   }).bind(this));
   // write your prefab's specific update code here

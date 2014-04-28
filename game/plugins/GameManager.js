@@ -5,6 +5,7 @@
 
 var GameManager  = (function() {
   var _cache = {};
+  var Cell = require('../prefabs/cell'); 
   var RedBloodCell = require('../prefabs/redBloodCell');
   var Player = require('../prefabs/player');
   var Hemoglobin = require('../prefabs/hemoglobin');
@@ -23,6 +24,9 @@ var GameManager  = (function() {
     get: function(id) {
       return _cache[id];
     },
+    set: function(id, obj) {
+     _cache[id] = obj; 
+    },
     add: function(id, obj) {
       if(!_cache.hasOwnProperty(id)) {
         _cache[id] = obj;
@@ -40,15 +44,24 @@ var GameManager  = (function() {
       _currentState = GameStates.ACTIVE;
       _.each(_cache, function(item) {
         if(item instanceof Phaser.Group) {
-          item.callAll('restore');
+          GameManager.restoreGroup(item);
         }
         else {
-          item.restore();
+          if(item.restoreVelocity) {
+            item.restoreVelocity();
+          }
         }
       });
     },
     getCurrentState: function() {
       return _currentState;
+    },
+    restoreGroup: function(group) {
+      group.forEachExists(function(item) {
+        if(item.restoreVelocity) {
+          item.restoreVelocity();
+        }
+      });
     },
     clearCache: function() {
       _cache = null;

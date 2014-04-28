@@ -4,6 +4,7 @@ var CrossHair = require('./crosshair');
 var Primative = require('./primative');
 
 var Player = function(game, x, y) {
+  this.GameManager = require('../plugins/GameManager');
   this.maxHealth = 16;
   Cell.call(this, game, x, y, Player.SIZE, Player.COLOR, this.maxHealth);
   this.automataOptions = {
@@ -72,7 +73,7 @@ Player.prototype.update = function() {
 
 Player.prototype.fire = function() {
   if(this.fireTimer < this.game.time.now) {
-    this.shootSound.play();
+    this.shootSound.play('',0, this.GameManager.get('mute'));
     var bullet = this.bullets.getFirstExists(false);
 
     if (!bullet) {

@@ -17,10 +17,12 @@
       this.hemoCount = 0;
       this.hemoMax = 10;
       this.maxBloodcells = 5;
-      this.level = LevelManager.get(this.score);
+      this.levelCount = 1;
+      this.level = LevelManager.get(this.levelCount);
       this._levelCache = null;
       this.introManager = new IntroManager(this.game);
       this.game.physics.startSystem(Phaser.Physics.ARCADE);
+      GameManager.add('volume',1);
 
       
 
@@ -147,6 +149,10 @@
       // controls
       this.pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
       this.pauseKey.onDown.add(this.togglePause, this);
+
+      this.pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.M);
+      this.pauseKey.onDown.add(this.toggleMute, this);
+      
       this.game.input.keyboard.addKeyCapture([Phaser.Keyboard.SPACEBAR, Phaser.Keyboard.W, Phaser.Keyboard.S, Phaser.Keyboard.A, Phaser.Keyboard.D]);
 
     },
@@ -165,7 +171,7 @@
         this.pausedText.visible = false;
           
           // spawn enemy
-          if(this.respawnTimer < this.game.time.now && this.enemies.countLiving() < this.level.maxEnemies) {
+          if(this.respawnTimer < this.game.time.now && this.enemies.length < this.level.maxEnemies) {
             var reanimated = null;
             var targetEnemy = _.sample(this.level.enemyTypes);
             this.enemies.forEachDead(function(enemy) {
@@ -207,7 +213,7 @@
             this.levelTagline.y = this.game.height / 2 + 40;
             this.game.add.tween(this.levelLabel).to({x: -this.levelLabel.width}, 5000, Phaser.Easing.Linear.NONE, true);
             this.game.add.tween(this.levelTagline).to({x: -this.levelTagline.width}, 5000, Phaser.Easing.Linear.NONE, true);
-            this.enemies.removeAll();
+            
           }
 
         // collisions  
@@ -222,7 +228,12 @@
       if(enemy.health === 0) {
         enemy.kill();
         this.score++;
-        this.level = LevelManager.get(this.score);
+        //increase level
+        if(this.level.maxEnemies <= this.enemies.countDead() && this.enemies.countLiving() === 0) {
+          this.enemies.removeAll();
+          this.levelCount++;
+          this.level = LevelManager.get(this.levelCount);
+        }
         if(this.redBloodCells.countLiving() - 1 < this.maxBloodcells && this.game.rnd.realInRange(0,1) < enemy.constructor.HEMOCHANCE) {
           this.hemoTracker.bar.visible = true;
           this.hemoLabel.visible = true;
@@ -243,7 +254,7 @@
     hemoglobinHit: function(player, hemo) {
       if(this.redBloodCells.countLiving() - 1 < this.maxBloodcells) {
         hemo.kill();
-        this.pickupSound.play();
+        this.pickupSound.play('',0,GameManager.get('mute'));
         this.hemoCount++;
         if(this.hemoCount === this.hemoMax) {
           this.hemoCount = 0;
@@ -285,6 +296,9 @@
           GameManager.unpause();
         }
       }
+    },
+    toggleMute: function() {
+      GameManager.set('mute', Number(!GameManager.get('mute')));
     }
   };
   
