@@ -2303,6 +2303,7 @@ var Player = function(game, x, y) {
   this.rightKey = this.game.input.keyboard.addKey(Phaser.Keyboard.D);
   this.upKey = this.game.input.keyboard.addKey(Phaser.Keyboard.W);
   this.downKey = this.game.input.keyboard.addKey(Phaser.Keyboard.S);
+  this.cursors = this.game.input.keyboard.createCursorKeys();
 
   this.moveSpeed = 400;
   this.bulletSpeed = 1000;
@@ -2334,16 +2335,16 @@ Player.prototype.update = function() {
   Cell.prototype.update.call(this, (function() {
     this.body.velocity.scaleBy(0);
     // movement
-    if(this.leftKey.justPressed()) {
+    if(this.leftKey.justPressed() || this.cursors.left.isDown) {
       this.body.velocity.x = -this.moveSpeed;
     }
-    if(this.rightKey.justPressed()) {
+    if(this.rightKey.justPressed() || this.cursors.right.isDown) {
       this.body.velocity.x = this.moveSpeed;
     }
-    if(this.downKey.justPressed()) {
+    if(this.downKey.justPressed() || this.cursors.down.isDown) {
       this.body.velocity.y = this.moveSpeed;
     }
-    if(this.upKey.justPressed()) {
+    if(this.upKey.justPressed() || this.cursors.up.isDown) {
       this.body.velocity.y = -this.moveSpeed;
     }
 
