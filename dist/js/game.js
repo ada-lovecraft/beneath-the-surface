@@ -837,17 +837,18 @@ Automata.prototype.flee = function(target, viewDistance, isFleeing) {
     if(target instanceof Phaser.Group || target instanceof Array) {
       target = this.getClosestInRange(target, viewDistance);
     }
-    
-    desired = Phaser.Point.subtract(target, this.position);
-    if (desired.getMagnitude() < viewDistance) {
-      desired.normalize();
-    
-      desired.multiply(-this.options.forces.maxSpeed, -this.options.forces.maxSpeed);
+    if (!!target) {
+      desired = Phaser.Point.subtract(target, this.position);
+      if (desired.getMagnitude() < viewDistance) {
+        desired.normalize();
+      
+        desired.multiply(-this.options.forces.maxSpeed, -this.options.forces.maxSpeed);
 
-      steer = Phaser.Point.subtract(desired, this.body.velocity);
-    }
-    if(this.options.game.debug && isFleeing) {
-      this.renderDebug.flee(this.position, target, viewDistance, steer.getMagnitude());  
+        steer = Phaser.Point.subtract(desired, this.body.velocity);
+      }
+      if(this.options.game.debug && isFleeing) {
+        this.renderDebug.flee(this.position, target, viewDistance, steer.getMagnitude());  
+      }
     }
   }
   return steer;
