@@ -151,8 +151,8 @@ var LevelManager  = (function() {
       id: 2,
       tagline: 'Flu Shots', 
       score: 10,
-      respawnRate: 1000,
-      maxEnemies: 10,
+      respawnRate: 300,
+      maxEnemies: 20,
       enemyTypes: [
         {
           enemyClass: CommonCold,
@@ -169,8 +169,8 @@ var LevelManager  = (function() {
       id: 3,
       tagline: 'Gettin\' Busy', 
       score: 25,
-      respawnRate: 1500,
-      maxEnemies: 10,
+      respawnRate: 300,
+      maxEnemies: 30,
       enemyTypes: [
         {
           enemyClass: HPV,
@@ -183,8 +183,8 @@ var LevelManager  = (function() {
       id: 4,
       tagline: 'Flu Season', 
       score: 50,
-      respawnRate: 500,
-      maxEnemies: 10,
+      respawnRate: 300,
+      maxEnemies: 20,
       enemyTypes: [
         {
           enemyClass: Influenza,
@@ -201,9 +201,9 @@ var LevelManager  = (function() {
     {
       id: 5,
       tagline: 'Flare Up', 
-      score: 0,
-      respawnRate: 1500,
-      maxEnemies: 10,
+      score: 80,
+      respawnRate: 200,
+      maxEnemies: 60,
       enemyTypes: [
         {
           enemyClass: HPV,
@@ -216,8 +216,8 @@ var LevelManager  = (function() {
       id: 6,
       tagline: 'Infection', 
       score: 120,
-      respawnRate: 1000,
-      maxEnemies: 10,
+      respawnRate: 300,
+      maxEnemies: 30,
       enemyTypes: [
         {
           enemyClass: SwineFlu,
@@ -238,8 +238,8 @@ var LevelManager  = (function() {
       id: 7,
       tagline: 'Philadelphia', 
       score: 150,
-      respawnRate: 500,
-      maxEnemies: 4,
+      respawnRate: 300,
+      maxEnemies: 10,
       enemyTypes: [
         {
           enemyClass: AIDS,
@@ -256,8 +256,8 @@ var LevelManager  = (function() {
       id: 8,
       tagline: 'Epidemic', 
       score: 170,
-      respawnRate: 500,
-      maxEnemies: 8,
+      respawnRate: 200,
+      maxEnemies: 20,
       enemyTypes: [
         {
           enemyClass: CommonCold,
@@ -283,7 +283,7 @@ var LevelManager  = (function() {
       tagline: 'Full. Blown. AIDS.', 
       score: 200,
       respawnRate: 500,
-      maxEnemies: 10,
+      maxEnemies: 20,
       enemyTypes: [
         {
           enemyClass: AIDS,
@@ -296,8 +296,8 @@ var LevelManager  = (function() {
       id: 10,
       tagline: 'Dead Man Walking', 
       score: 210,
-      respawnRate: 500,
-      maxEnemies: 10,
+      respawnRate: 200,
+      maxEnemies: 30,
       enemyTypes: [
         {
           enemyClass: AIDS,
@@ -2988,13 +2988,7 @@ module.exports = Menu;
             this.levelTagline.y = this.game.height / 2 + 40;
             this.game.add.tween(this.levelLabel).to({x: -this.levelLabel.width}, 5000, Phaser.Easing.Linear.NONE, true);
             this.game.add.tween(this.levelTagline).to({x: -this.levelTagline.width}, 5000, Phaser.Easing.Linear.NONE, true);
-            if(this.enemies.countLiving() / 1.5 > this._levelCache.maxEnemies) {
-              var diff = this.enemies.countLiving() - this._levelCache.maxEnemies;
-              diff *= 2;
-              for(var i = 0; i < diff; i++ ){
-                this.enemies.getRandom().kill();
-              }
-            }
+            this.enemies.removeAll();
           }
 
         // collisions  
