@@ -29,7 +29,7 @@ exports.whiteBloodCell = {
   name: 'The White Blood Cell',
   tagline: 'The hero of our story',
   description: 'Fast, agile, and loaded with antivirals. Kill the bad guys, protect the innocents, and be awesome.',
-  mechanics: 'Click to shoot. WASD to move',
+  mechanics: 'Click to shoot. WASD or Arrow keys to move',
   color: '#ccc',
   spriteClass: Player
 };
